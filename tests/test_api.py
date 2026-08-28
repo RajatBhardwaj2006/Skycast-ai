@@ -52,6 +52,22 @@ def test_route_distance_rejects_same_airport():
     assert response.status_code == 400
 
 
+def test_route_distance_is_symmetric_for_delhi_and_mumbai():
+    forward = client.get("/route-distance", params={"source_iata": "DEL", "destination_iata": "BOM"})
+    reverse = client.get("/route-distance", params={"source_iata": "BOM", "destination_iata": "DEL"})
+    assert forward.status_code == 200
+    assert reverse.status_code == 200
+    assert forward.json()["distance_km"] == reverse.json()["distance_km"]
+
+
+def test_route_distance_delhi_to_bangalore():
+    response = client.get("/route-distance", params={"source_iata": "DEL", "destination_iata": "BLR"})
+    assert response.status_code == 200
+    assert response.json()["source"]["city"] == "Delhi"
+    assert response.json()["destination"]["city"] == "Bangalore"
+    assert response.json()["distance_km"] > 1000
+
+
 def test_predict_same_city_rejected():
     payload = {
         "airline": "Air India",
