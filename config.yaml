@@ -1,0 +1,70 @@
+project_name: SkyCast
+random_state: 42
+test_size: 0.2
+target: price
+
+paths:
+  raw_clean: Clean_Dataset.csv
+  raw_business: business.csv
+  raw_economy: economy.csv
+  airports: data/reference/airports.csv
+  processed: data/processed/processed_flights.csv
+  quality_report: data/processed/data_quality_report.json
+  models_dir: models
+  pipeline: models/airfare_pipeline.pkl
+  metrics: models/metrics.json
+  feature_importance: models/feature_importance.json
+  metadata: models/model_metadata.json
+  geo_experiment: models/geo_experiment.json
+  comparison: models/model_comparison.json
+
+features:
+  categorical:
+    - airline
+    - departure_time
+    - arrival_time
+    - stops
+    - class
+    - source_city
+    - destination_city
+  numerical:
+    - duration
+    - days_left
+    - source_lat
+    - source_lon
+    - destination_lat
+    - destination_lon
+    - distance_km
+  unsupported_ui_fields:
+    - seat_type
+    - baggage
+    - lounge_access
+    - meal
+    - aircraft_type
+    - refundable
+    - seat_selection
+
+training:
+  use_flight_code: false
+  geo_experiment: true
+  tune_best_model: true
+  tune_sample_size: 40000
+  tune_iter: 8
+  cv_folds: 3
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  cors_origins:
+    - http://localhost:5173
+    - http://127.0.0.1:5173
+    - http://localhost:3000
+    - http://127.0.0.1:3000
+
+known_training_cities:
+  - Delhi
+  - Mumbai
+  - Bangalore
+  - Kolkata
+  - Hyderabad
+  - Chennai
