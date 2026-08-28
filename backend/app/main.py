@@ -6,7 +6,7 @@ from backend.app.schemas import BatchPredictionRequest, FlightPredictionRequest
 from backend.app.services import model_service, prediction_service
 from src.geo.locations import default_location_service
 
-app = FastAPI(title="SkyCast Airfare Estimation API", version="2.0.0")
+app = FastAPI(title="SkyCast Airfare Intelligence API", version="2.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=API_CORS_ORIGINS,
@@ -18,7 +18,9 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "skycast"}
+    # Do not eagerly deserialize the 139 MB pipeline here.  Artifact presence
+    # gives a fast readiness check; /predict verifies model deserialization.
+    return {"status": "ok", "service": "skycast", "model_artifact_available": model_service.PIPELINE_PATH.exists()}
 
 
 @app.get("/")

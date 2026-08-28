@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class LocationOut(BaseModel):
@@ -31,6 +31,14 @@ class FlightPredictionRequest(BaseModel):
 
     model_config = {"populate_by_name": True}
 
+    @field_validator("airline", "departure_time", "arrival_time", "stops", "class_type")
+    @classmethod
+    def required_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field cannot be blank.")
+        return value
+
     @field_validator("duration")
     @classmethod
     def duration_positive(cls, value: float) -> float:
@@ -45,11 +53,13 @@ class FlightPredictionRequest(BaseModel):
     def days_non_negative(cls, value: int) -> int:
         if value < 0:
             raise ValueError("Days left cannot be negative.")
+        if value > 365:
+            raise ValueError("Days left must be within 365 days.")
         return value
 
 
 class BatchPredictionRequest(BaseModel):
-    items: list[FlightPredictionRequest]
+    items: list[FlightPredictionRequest] = Field(min_length=1, max_length=100)
 
 
 class FlightPredictionResponse(BaseModel):
@@ -57,6 +67,7 @@ class FlightPredictionResponse(BaseModel):
     currency: str = "INR"
     model: str
     confidence_note: str
+    expected_price_range: dict
     source: LocationOut
     destination: LocationOut
     distance_km: float

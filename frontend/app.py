@@ -1,131 +1,129 @@
-"""
-Upgraded Streamlit Frontend Dashboard for SkyCast Airfare Estimator
-"""
+"""SkyCast Streamlit client; every prediction field maps to the saved model."""
+from datetime import date, time
+import os
 
-import streamlit as st
 import pandas as pd
 import requests
-import datetime
+import streamlit as st
 
-# Page configuration
-st.set_page_config(
-    page_title="SkyCast: AI Airfare Estimator",
-    page_icon="✈️",
-    layout="wide"
-)
+API_URL = os.getenv("SKYCAST_API_URL", "http://127.0.0.1:8000").rstrip("/")
+TIMEOUT = 20
+st.set_page_config("SkyCast | AI Airfare Intelligence", "✈️", layout="wide")
+st.markdown("""<style>
+.stApp{background:#f3f8fa;color:#12303c}.hero{padding:1.4rem 0 .6rem}.hero h1{color:#073b4c;font-size:3rem;margin:.1rem 0}.eyebrow{color:#087e8b;font-size:.8rem;font-weight:700;letter-spacing:.12em}.panel{background:#fff;border:1px solid #d8e6ea;border-radius:16px;padding:1.2rem}.fare{font-size:2.8rem;font-weight:750;color:#073b4c;margin:.2rem 0}.stButton>button{background:#087e8b;color:white;border:0;border-radius:10px;font-weight:700;min-height:2.8rem}div[data-testid="stMetric"]{background:#fff;border:1px solid #d8e6ea;border-radius:12px;padding:.7rem}</style>""", unsafe_allow_html=True)
 
-# Custom CSS injection for modern styling
-st.markdown("""
-    <style>
-    .main {
-        background-color: #0e1117;
-    }
-    .stButton>button {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
-        color: white;
-        border-radius: 8px;
-        padding: 0.6rem 1rem;
-        font-weight: 600;
-        border: none;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-    .stButton>button:hover {
-        background: linear-gradient(135deg, #1d4ed8, #1e40af);
-        color: white;
-    }
-    div.stMetric {
-        background-color: #161b22;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #30363d;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
-# App Header
-st.title("✈️ SkyCast: AI Airfare Price Estimator")
-st.markdown("Get accurate, AI-driven fare predictions and smart travel recommendations instantly.")
+def get(path):
+    response = requests.get(API_URL + path, timeout=TIMEOUT)
+    response.raise_for_status()
+    return response.json()
 
-# Layout: Two columns
-col1, col2 = st.columns([1, 1.3], gap="large")
 
-with col1:
-    st.subheader("🔍 Flight Details")
-    
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        source = st.selectbox("From (Source)", ["DEL", "BOM", "BLR", "CCU"])
-    with col_s2:
-        destination = st.selectbox("To (Destination)", ["GOI", "BLR", "HYD", "MAA"])
-        
-    airline = st.selectbox("Airline", ["IndiGo", "Air India", "Vistara", "Akasa Air"])
-    
-    col_c1, col_c2 = st.columns(2)
-    with col_c1:
-        seat_class = st.selectbox("Seat Class", ["Economy", "Economy Flex", "Business"])
-    with col_c2:
-        aircraft_type = st.selectbox("Aircraft Type", ["Airbus A320", "Boeing 737-800", "ATR 72"])
+@st.cache_data(ttl=300, show_spinner=False)
+def dashboard_data():
+    return get("/catalog"), get("/metrics"), get("/feature-importance"), get("/geo-experiment")
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        duration_mins = st.number_input("Duration (Minutes)", min_value=30, max_value=600, value=120)
-    with col_b:
-        total_stops = st.selectbox("Total Stops", [0, 1, 2])
-        
-    booking_window = st.slider("Booking Window (Days Left to Travel)", min_value=1, max_value=90, value=15)
-    
-    travel_date = st.date_input("Travel Date", datetime.date.today() + datetime.timedelta(days=10))
-    dep_time = st.time_input("Departure Time", datetime.time(8, 0))
-    
-    predict_btn = st.button("Estimate Fare Now", use_container_width=True)
 
-with col2:
-    st.subheader("📊 Estimation Results & Smart Insights")
-    
-    if predict_btn:
-        payload = {
-            "source": source,
-            "destination": destination,
-            "airline": airline,
-            "duration_mins": int(duration_mins),
-            "total_stops": int(total_stops),
-            "booking_window": int(booking_window),
-            "dep_time": f"{travel_date}T{dep_time}",
-            "travel_date": str(travel_date)
-        }
-        
-        try:
-            response = requests.post("http://127.0.0.1:8000/predict", json=payload)
-            if response.status_code == 200:
-                res_data = response.json()
-                
-                # Apply multipliers for UI feel based on seat class
-                multiplier = 1.6 if seat_class == "Business" else (1.2 if seat_class == "Economy Flex" else 1.0)
-                final_fare = res_data['estimated_fare'] * multiplier
-                fare_min = res_data['fare_range_min'] * multiplier
-                fare_max = res_data['fare_range_max'] * multiplier
-                
-                st.success("✨ Prediction Generated Successfully!")
-                
-                m1, m2 = st.columns(2)
-                with m1:
-                    st.metric(label="Estimated Fare", value=f"₹{final_fare:,.2f}")
-                with m2:
-                    st.metric(label="Model Confidence", value=res_data['confidence'])
-                
-                st.info(f"💡 **Expected Price Range:** ₹{fare_min:,.2f} – ₹{fare_max:,.2f}")
-                st.warning(f"📈 **Market Trend:** {res_data['price_trend']}")
-                
-                st.markdown("---")
-                st.subheader("🛡️ Smart Traveler Assistant")
-                st.markdown(f"- **Route Overview:** Direct path from **{source}** to **{destination}** via **{aircraft_type}** ({seat_class}).")
-                st.markdown("- **Cheaper Alternative Date:** Flying 2 days earlier could save you ~₹850 on this sector.")
-                st.markdown("- **Baggage Guide:** Standard Cabin Baggage (7kg) included | Checked Baggage limit: 15kg.")
-                st.markdown("- **Peak Time Alert:** Early morning slots are optimal for avoiding major terminal congestion.")
-                
-            else:
-                st.error(f"Backend error: {response.text}")
-        except requests.exceptions.ConnectionError:
-            st.error("Could not connect to FastAPI backend server. Ensure it is running on port 8000!")
+def band(value):
+    h = value.hour
+    return "Late Night" if h < 4 else "Early Morning" if h < 7 else "Morning" if h < 12 else "Afternoon" if h < 16 else "Evening" if h < 20 else "Night"
+
+
+def error_message(response):
+    try:
+        detail = response.json().get("detail", "Prediction failed.")
+        return detail.get("message", detail) if isinstance(detail, dict) else str(detail)
+    except ValueError:
+        return "Prediction failed. Please check the API and try again."
+
+
+st.markdown("""<div class="hero"><div class="eyebrow">AI AIRFARE INTELLIGENCE PLATFORM</div><h1>SkyCast</h1><p>Historical airfare estimates from the trained Random Forest model—not live airline quotes.</p></div>""", unsafe_allow_html=True)
+try:
+    catalog, metrics, importance, geo = dashboard_data()
+    ready = True
+except requests.RequestException:
+    ready, catalog, metrics, importance, geo = False, {}, {}, {}, {}
+    st.error("SkyCast API is unavailable. Please start the backend.")
+
+predict_tab, insights_tab, about_tab = st.tabs(["Predict fare", "Model insights", "Methodology"])
+with predict_tab:
+    if not ready:
+        st.info("Run `uvicorn backend.app.main:app --reload` from the project root, then refresh.")
     else:
-        st.info("👈 Select your parameters on the left and click **Estimate Fare Now** to view results.")
+        cities = catalog["training_cities"]
+        left, right = st.columns([1.08, .92], gap="large")
+        with left:
+            st.markdown("<div class='panel'>", unsafe_allow_html=True)
+            st.subheader("Flight details")
+            st.caption("Travel date calculates the model's booking-window feature. Routes use cities present in training data.")
+            with st.form("prediction"):
+                c1, c2 = st.columns(2)
+                origin = c1.selectbox("Origin", cities, index=cities.index("Delhi") if "Delhi" in cities else 0)
+                destinations = [x for x in cities if x != origin]
+                destination = c2.selectbox("Destination", destinations, index=destinations.index("Mumbai") if "Mumbai" in destinations else 0)
+                c1, c2 = st.columns(2)
+                airline = c1.selectbox("Airline", catalog["airlines"])
+                travel_class = c2.selectbox("Travel class", catalog["classes"])
+                c1, c2, c3 = st.columns(3)
+                travel_date = c1.date_input("Travel date", value=date.today())
+                departure = c2.time_input("Departure time", value=time(9, 0))
+                arrival = c3.time_input("Arrival time", value=time(11, 15))
+                c1, c2 = st.columns(2)
+                duration = c1.number_input("Duration (hours)", .25, 48.0, 2.25, .25)
+                stop_label = c2.selectbox("Stops", ["Non-stop", "1 stop", "2+ stops"])
+                days_left = max(0, (travel_date - date.today()).days)
+                st.caption(f"Booking window: **{days_left} days left**")
+                submitted = st.form_submit_button("Predict fare", use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        with right:
+            if not submitted:
+                st.markdown("<div class='panel'><h3>Your estimate will appear here</h3><p>Choose flight details and run the trained model.</p></div>", unsafe_allow_html=True)
+            else:
+                payload = {"source_city": origin, "destination_city": destination, "airline": airline, "class": travel_class, "departure_time": band(departure), "arrival_time": band(arrival), "stops": {"Non-stop":"zero", "1 stop":"one", "2+ stops":"two_or_more"}[stop_label], "duration": duration, "days_left": days_left}
+                with st.spinner("Running the trained model…"):
+                    try:
+                        response = requests.post(API_URL + "/predict", json=payload, timeout=TIMEOUT)
+                        result = response.json() if response.ok else None
+                        if not result: st.error(error_message(response))
+                    except requests.RequestException:
+                        result = None; st.error("SkyCast API is unavailable. Please start the backend.")
+                if result:
+                    price_range = result["expected_price_range"]
+                    st.markdown("<div class='panel'>", unsafe_allow_html=True)
+                    st.caption("ESTIMATED FARE")
+                    st.markdown(f"<p class='fare'>₹{result['predicted_price']:,.0f}</p>", unsafe_allow_html=True)
+                    st.caption(f"Expected model-error band: ₹{price_range['low']:,.0f} – ₹{price_range['high']:,.0f}")
+                    st.info(result["confidence_note"])
+                    a, b = st.columns(2)
+                    a.metric("Route distance", f"{result['distance_km']:,.0f} km")
+                    b.metric("Booking window", f"{result['summary']['days_left']} days")
+                    st.write(f"**{result['source']['city']} → {result['destination']['city']}** · {result['summary']['airline']} · {result['summary']['class']} · {stop_label}")
+                    st.caption(f"Model: {result['model']}. {price_range['note']}")
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+with insights_tab:
+    if ready:
+        a, b, c = st.columns(3)
+        a.metric("Held-out MAE", f"₹{metrics['mae']:,.0f}")
+        b.metric("Held-out RMSE", f"₹{metrics['rmse']:,.0f}")
+        c.metric("Held-out R²", f"{metrics['r2']:.4f}")
+        left, right = st.columns(2)
+        with left:
+            st.subheader("Feature importance")
+            frame = pd.DataFrame(importance.get("features", [])[:10])
+            if not frame.empty: st.bar_chart(frame.set_index("feature")["importance"], horizontal=True)
+            st.caption("Grouped impurity importance from the saved model. It is not a per-flight causal explanation.")
+        with right:
+            st.subheader("Geographic feature experiment")
+            rows = geo.get("results", [])
+            if rows: st.dataframe(pd.DataFrame(rows)[["model", "mae", "rmse", "r2"]], hide_index=True, use_container_width=True)
+            st.caption(geo.get("note", ""))
+        st.subheader("Model comparison")
+        comparison = metrics.get("comparison", [])
+        if comparison: st.dataframe(pd.DataFrame(comparison)[["model", "mae", "rmse", "r2"]], hide_index=True, use_container_width=True)
+
+with about_tab:
+    st.subheader("How it works")
+    st.write("The pipeline uses airline, time bands, stops, class, cities, duration, booking window, route coordinates and haversine distance. It loads the trained model once in the API process.")
+    st.subheader("Limitations")
+    st.write("SkyCast does not query airline inventory or live prices. Training covers six Indian city markets; the price range is ± held-out MAE, not a confidence interval or guarantee.")

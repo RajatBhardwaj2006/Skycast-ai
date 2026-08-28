@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi import HTTPException
 
 from backend.app.schemas import FlightPredictionRequest, LocationOut
-from backend.app.services.model_service import load_importance, load_metadata, load_pipeline
+from backend.app.services.model_service import load_importance, load_metadata, load_metrics, load_pipeline
 from src.data.clean import AIRLINE_MAP, STOPS_MAP, TIME_MAP
 from src.geo.locations import LocationNotFoundError, default_location_service
 from src.models.train import CATEGORICAL, GEO_NUMERIC
@@ -109,6 +109,11 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
     predicted = float(pipeline.predict(frame)[0])
     predicted = max(0.0, round(predicted, 2))
 
+    # The held-out test MAE is an interpretable average absolute error.  It is
+    # deliberately presented as an error band, not as a confidence interval.
+    mae = float(load_metrics().get("mae", 0))
+    error_band = round(mae, 2)
+
     terciles = metadata.get("price_terciles", {})
     importance = load_importance().get("features", [])
     reliability = None
@@ -119,7 +124,14 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
         "predicted_price": predicted,
         "currency": "INR",
         "model": metadata.get("model_name", "unknown"),
-        "confidence_note": "Estimated fare based on historical training data",
+        "confidence_note": "Model estimate based on historical training data; this is not a live fare quote.",
+        "expected_price_range": {
+            "low": round(max(0.0, predicted - error_band), 2),
+            "high": round(predicted + error_band, 2),
+            "method": "held_out_test_mae",
+            "error_band": error_band,
+            "note": "Range is the prediction plus or minus the model's held-out test MAE, not a statistical confidence interval.",
+        },
         "source": LocationOut(**origin.to_dict()),
         "destination": LocationOut(**destination.to_dict()),
         "distance_km": distance_km,
