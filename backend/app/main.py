@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.config import API_CORS_ORIGINS
 from backend.app.schemas import BatchPredictionRequest, FlightPredictionRequest
 from backend.app.services import model_service, prediction_service
-from src.geo.locations import default_location_service
+from src.geo.locations import LocationNotFoundError, default_location_service
 
 app = FastAPI(title="SkyCast Airfare Intelligence API", version="2.1.0")
 app.add_middleware(
@@ -37,6 +37,20 @@ def search_locations(q: str = Query(..., min_length=1), limit: int = Query(8, ge
             detail={"message": "Location not found.", "hint": "Try another city or airport."},
         )
     return {"results": [item.to_dict() for item in matches]}
+
+
+@app.get("/route-distance")
+def route_distance(source_iata: str = Query(..., min_length=3, max_length=3), destination_iata: str = Query(..., min_length=3, max_length=3)):
+    """Resolve two airport identifiers and calculate a server-authoritative route distance."""
+    service = default_location_service()
+    try:
+        source = service.get_by_iata(source_iata)
+        destination = service.get_by_iata(destination_iata)
+    except LocationNotFoundError:
+        raise HTTPException(status_code=404, detail={"message": "Location not found.", "hint": "Select a valid city or airport."})
+    if source.iata == destination.iata:
+        raise HTTPException(status_code=400, detail="Departure and destination cannot be the same.")
+    return {"source": source.to_dict(), "destination": destination.to_dict(), "distance_km": round(service.distance_between(source, destination), 2)}
 
 
 @app.get("/catalog")

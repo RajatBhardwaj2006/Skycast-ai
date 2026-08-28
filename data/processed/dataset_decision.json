@@ -1,0 +1,9 @@
+{
+  "recommended_modeling_dataset": "Clean_Dataset.csv",
+  "reason": "Clean_Dataset.csv already standardizes airline, class, stops, duration (hours), days_left and price. business.csv and economy.csv contain travel dates and clock times but no booking timestamp, so days_left cannot be derived without inventing a scrape date. Those files are retained for documentation and schema comparison only.",
+  "clean_rows": 300153,
+  "business_rows": 93487,
+  "economy_rows": 206774,
+  "days_left_invented": false,
+  "seat_type_invented": false
+}

@@ -1,0 +1,70 @@
+{
+  "estimator": "HistGradientBoostingRegressor",
+  "note": "Same estimator and split used to isolate the effect of distance and coordinates.",
+  "results": [
+    {
+      "mae": 2359.5005848477435,
+      "mse": 16455577.828930052,
+      "rmse": 4056.547525782245,
+      "r2": 0.9680773158017597,
+      "model": "A_categorical",
+      "training_seconds": 3.469,
+      "features": [
+        "airline",
+        "departure_time",
+        "arrival_time",
+        "stops",
+        "class",
+        "source_city",
+        "destination_city",
+        "duration",
+        "days_left"
+      ]
+    },
+    {
+      "mae": 2273.018156752205,
+      "mse": 15710234.86409429,
+      "rmse": 3963.6138641515386,
+      "r2": 0.9695232296635021,
+      "model": "B_categorical_distance",
+      "training_seconds": 1.746,
+      "features": [
+        "airline",
+        "departure_time",
+        "arrival_time",
+        "stops",
+        "class",
+        "source_city",
+        "destination_city",
+        "duration",
+        "days_left",
+        "distance_km"
+      ]
+    },
+    {
+      "mae": 2272.163491519877,
+      "mse": 15620725.494185414,
+      "rmse": 3952.306351256873,
+      "r2": 0.9696968716576083,
+      "model": "C_categorical_geo_distance",
+      "training_seconds": 1.679,
+      "features": [
+        "airline",
+        "departure_time",
+        "arrival_time",
+        "stops",
+        "class",
+        "source_city",
+        "destination_city",
+        "duration",
+        "days_left",
+        "distance_km",
+        "source_lat",
+        "source_lon",
+        "destination_lat",
+        "destination_lon"
+      ]
+    }
+  ],
+  "winner": "C_categorical_geo_distance"
+}

@@ -275,6 +275,8 @@ def train_model() -> None:
         "random_state": random_state,
         "training_rows": int(len(X_train)),
         "test_rows": int(len(X_test)),
+        "validation_strategy": "random_row_holdout",
+        "route_count": int(featured[["source_city", "destination_city"]].drop_duplicates().shape[0]),
         "features": feature_cols,
         "categorical_features": CATEGORICAL,
         "numerical_features": GEO_NUMERIC,

@@ -1,0 +1,66 @@
+{
+  "best_model": "Random Forest (tuned)",
+  "mae": 1508.8937199655093,
+  "mse": 9319406.292410025,
+  "rmse": 3052.7702652525336,
+  "r2": 0.9819209955991535,
+  "comparison": [
+    {
+      "mae": 4553.675424692961,
+      "mse": 45716419.07145517,
+      "rmse": 6761.391799877831,
+      "r2": 0.9113133051987536,
+      "model": "Linear Regression",
+      "training_seconds": 0.67
+    },
+    {
+      "mae": 4553.662260815709,
+      "mse": 45716409.72983666,
+      "rmse": 6761.391109071908,
+      "r2": 0.9113133233208482,
+      "model": "Ridge",
+      "training_seconds": 0.48
+    },
+    {
+      "mae": 1531.9408768398227,
+      "mse": 9495897.642628567,
+      "rmse": 3081.541439382013,
+      "r2": 0.9815786145721657,
+      "model": "Random Forest",
+      "training_seconds": 5.32
+    },
+    {
+      "mae": 2952.3236493400464,
+      "mse": 24714850.946955487,
+      "rmse": 4971.403317671529,
+      "r2": 0.9520548965227349,
+      "model": "Gradient Boosting",
+      "training_seconds": 2.779,
+      "note": "Trained on a 60,000-row sample because full-data sklearn GradientBoosting is too slow."
+    },
+    {
+      "mae": 2160.7688387691333,
+      "mse": 14123014.089142729,
+      "rmse": 3758.059883655758,
+      "r2": 0.972602328317977,
+      "model": "HistGradientBoosting",
+      "training_seconds": 1.783
+    },
+    {
+      "mae": 1709.788330078125,
+      "mse": 9908475.0,
+      "rmse": 3147.7730223127587,
+      "r2": 0.9807782173156738,
+      "model": "XGBoost",
+      "training_seconds": 1.95
+    },
+    {
+      "mae": 1508.8937199655093,
+      "mse": 9319406.292410025,
+      "rmse": 3052.7702652525336,
+      "r2": 0.9819209955991535,
+      "model": "Random Forest (tuned)",
+      "training_seconds": null
+    }
+  ]
+}

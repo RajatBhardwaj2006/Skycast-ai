@@ -1,0 +1,105 @@
+{
+  "name": "Clean_Dataset.csv",
+  "rows": 300153,
+  "columns": 12,
+  "column_names": [
+    "Unnamed: 0",
+    "airline",
+    "flight",
+    "source_city",
+    "departure_time",
+    "stops",
+    "arrival_time",
+    "destination_city",
+    "class",
+    "duration",
+    "days_left",
+    "price"
+  ],
+  "dtypes": {
+    "Unnamed: 0": "int64",
+    "airline": "str",
+    "flight": "str",
+    "source_city": "str",
+    "departure_time": "str",
+    "stops": "str",
+    "arrival_time": "str",
+    "destination_city": "str",
+    "class": "str",
+    "duration": "float64",
+    "days_left": "int64",
+    "price": "int64"
+  },
+  "missing_values": {
+    "Unnamed: 0": 0,
+    "airline": 0,
+    "flight": 0,
+    "source_city": 0,
+    "departure_time": 0,
+    "stops": 0,
+    "arrival_time": 0,
+    "destination_city": 0,
+    "class": 0,
+    "duration": 0,
+    "days_left": 0,
+    "price": 0
+  },
+  "duplicate_rows": 0,
+  "unique_values": {
+    "Unnamed: 0": 300153,
+    "airline": 6,
+    "flight": 1561,
+    "source_city": 6,
+    "departure_time": 6,
+    "stops": 3,
+    "arrival_time": 6,
+    "destination_city": 6,
+    "class": 2,
+    "duration": 476,
+    "days_left": 49,
+    "price": 12157
+  },
+  "numerical_statistics": {
+    "Unnamed: 0": {
+      "min": 0.0,
+      "max": 300152.0,
+      "mean": 150076.0,
+      "median": 150076.0,
+      "std": 86646.85201148395
+    },
+    "duration": {
+      "min": 0.83,
+      "max": 49.83,
+      "mean": 12.221020812718846,
+      "median": 11.25,
+      "std": 7.191997238119017
+    },
+    "days_left": {
+      "min": 1.0,
+      "max": 49.0,
+      "mean": 26.004750910369044,
+      "median": 26.0,
+      "std": 13.561003687093569
+    },
+    "price": {
+      "min": 1105.0,
+      "max": 123071.0,
+      "mean": 20889.660523133203,
+      "median": 7425.0,
+      "std": 22697.76736607447
+    }
+  },
+  "target_statistics": {
+    "min": 1105.0,
+    "max": 123071.0,
+    "mean": 20889.660523133203,
+    "median": 7425.0,
+    "std": 22697.76736607447
+  },
+  "potential_outliers": {
+    "Unnamed: 0": 0,
+    "duration": 2110,
+    "days_left": 0,
+    "price": 123
+  }
+}

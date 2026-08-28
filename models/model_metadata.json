@@ -1,0 +1,118 @@
+{
+  "model_name": "Random Forest (tuned)",
+  "target": "price",
+  "random_state": 42,
+  "training_rows": 240122,
+  "test_rows": 60031,
+  "validation_strategy": "random_row_holdout",
+  "route_count": 30,
+  "features": [
+    "airline",
+    "departure_time",
+    "arrival_time",
+    "stops",
+    "class",
+    "source_city",
+    "destination_city",
+    "duration",
+    "days_left",
+    "distance_km",
+    "source_lat",
+    "source_lon",
+    "destination_lat",
+    "destination_lon"
+  ],
+  "categorical_features": [
+    "airline",
+    "departure_time",
+    "arrival_time",
+    "stops",
+    "class",
+    "source_city",
+    "destination_city"
+  ],
+  "numerical_features": [
+    "duration",
+    "days_left",
+    "distance_km",
+    "source_lat",
+    "source_lon",
+    "destination_lat",
+    "destination_lon"
+  ],
+  "metrics": {
+    "mae": 1508.8937199655093,
+    "mse": 9319406.292410025,
+    "rmse": 3052.7702652525336,
+    "r2": 0.9819209955991535
+  },
+  "training_timestamp": "2026-08-28T10:58:39.068236+00:00",
+  "dataset": "Clean_Dataset.csv",
+  "unknown_category_handling": "OneHotEncoder(handle_unknown='ignore')",
+  "geographic_features": true,
+  "unsupported_features": [
+    "seat_type",
+    "baggage",
+    "lounge_access",
+    "meal",
+    "aircraft_type",
+    "refundable",
+    "seat_selection"
+  ],
+  "price_terciles": {
+    "budget_max": 5618.0,
+    "high_min": 14620.0
+  },
+  "airlines": [
+    "Air India",
+    "AirAsia",
+    "GO FIRST",
+    "Indigo",
+    "SpiceJet",
+    "Vistara"
+  ],
+  "classes": [
+    "Business",
+    "Economy"
+  ],
+  "stops": [
+    "one",
+    "two_or_more",
+    "zero"
+  ],
+  "departure_times": [
+    "Afternoon",
+    "Early Morning",
+    "Evening",
+    "Late Night",
+    "Morning",
+    "Night"
+  ],
+  "arrival_times": [
+    "Afternoon",
+    "Early Morning",
+    "Evening",
+    "Late Night",
+    "Morning",
+    "Night"
+  ],
+  "training_cities": [
+    "Bangalore",
+    "Chennai",
+    "Delhi",
+    "Hyderabad",
+    "Kolkata",
+    "Mumbai"
+  ],
+  "example_input": {
+    "airline": "Air India",
+    "source_city": "Delhi",
+    "destination_city": "Mumbai",
+    "departure_time": "Morning",
+    "arrival_time": "Evening",
+    "stops": "one",
+    "class": "Economy",
+    "duration": 5.5,
+    "days_left": 15
+  }
+}

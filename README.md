@@ -37,7 +37,15 @@ Start the API from the repository root:
 uvicorn backend.app.main:app --reload
 ```
 
-In another terminal, start the dashboard:
+In another terminal, start the polished React dashboard:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+It runs at `http://localhost:5173` and uses the FastAPI location-search and prediction endpoints. The original Streamlit client is also available:
 
 ```bash
 streamlit run frontend/app.py
@@ -48,7 +56,7 @@ The API defaults to `http://127.0.0.1:8000`; set `SKYCAST_API_URL` for a differe
 ## API
 
 - `GET /health`, `/model-info`, `/metrics`, `/feature-importance`, `/geo-experiment`, `/dataset-info`
-- `GET /catalog` and `GET /locations/search?q=Delhi`
+- `GET /catalog`, `GET /locations/search?q=Delhi`, and `GET /route-distance?source_iata=IXL&destination_iata=DEL`
 - `POST /predict` and `POST /batch-predict`
 
 Example request:
