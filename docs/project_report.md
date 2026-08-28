@@ -1,8 +1,12 @@
 # SkyCast technical report
 
-## Scope
+## Introduction and problem statement
 
-SkyCast provides historical airfare estimates through a FastAPI prediction service and Streamlit dashboard. The deployed artifact is the existing `models/airfare_pipeline.pkl`; requests never retrain or apply UI multipliers.
+SkyCast estimates the `price` target for a consumer airfare-estimation workflow. It is a supervised regression system, not a live airline inventory or booking service. The deployed artifact is `models/airfare_pipeline.pkl`; requests never retrain or apply UI multipliers. The primary user interface is a React/Vite dashboard, with the Streamlit client retained as a lightweight alternative.
+
+## Objectives
+
+The system validates historical data, engineers route geography, compares regression algorithms, persists the selected preprocessing-and-model pipeline, and serves real estimates through FastAPI. The web client supports searchable cities and airports, displays dynamically calculated route distance, and communicates uncertainty and out-of-distribution limitations plainly.
 
 ## Data and preprocessing
 
@@ -10,18 +14,32 @@ SkyCast provides historical airfare estimates through a FastAPI prediction servi
 
 Business and economy source extracts are deliberately not folded into the training target: without a booking timestamp, `days_left` cannot be derived honestly. This decision is recorded in `data/processed/dataset_decision.json`.
 
-## Model
+## Feature engineering and geography
 
-The feature contract is airline, departure time, arrival time, stops, class, origin city, destination city, duration, days left, source/destination coordinates and distance. Categorical values are one-hot encoded with unknown-category handling; numerical values are passed to the estimator. The production pipeline is a tuned Random Forest with `n_estimators=100`, `max_depth=16`, and `min_samples_leaf=2`.
+The production feature contract is airline, departure/arrival period, stops, class, source/destination city, duration, days left, source/destination coordinates and haversine distance. The geographic experiment compares categorical/base features, then distance, then coordinates plus distance under the same HistGradientBoosting estimator and split. The recorded MAEs are ₹2,359.50, ₹2,273.02 and ₹2,272.16 respectively, so the full geographic representation was selected for the production comparison.
+
+Airport lookup comes from `data/reference/airports.csv`. FastAPI resolves IATA/city selections and derives the distance itself; clients do not provide a trusted distance. This safely supports locations such as Leh (IXL), though a city absent from historical training categories is flagged as outside the training distribution.
+
+## ML algorithms, tuning and evaluation
+
+Categorical values are one-hot encoded with unknown-category handling; numerical values are passed to the estimator in the saved sklearn pipeline. Linear Regression, Ridge, Random Forest, Gradient Boosting, HistGradientBoosting and XGBoost were evaluated. The production pipeline is a tuned Random Forest with `n_estimators=100`, `max_depth=16`, and `min_samples_leaf=2`.
 
 Recorded held-out results: MAE ₹1,508.89, RMSE ₹3,052.77 and R² 0.9819. The comparison artifact includes linear, ridge, random forest, gradient boosting, histogram gradient boosting and XGBoost candidates. A separate geographic experiment found the categorical + coordinates + distance representation outperformed categorical-only variants under its fixed estimator/split.
 
-## API and UI contract
+## Feature importance
+
+The saved grouped impurity importance report is exposed through the API and dashboard. Class is the dominant reported feature (0.892748), followed by duration (0.051737), distance (0.015060), days left (0.013490), and airline (0.010992). These describe the fitted forest, not causal price effects for an individual flight.
+
+## System architecture, backend and frontend
 
 The API resolves cities/IATA codes to reference coordinates, normalizes permitted values, validates duration and booking window, and produces the exact feature frame expected by the saved pipeline. The response exposes an `expected_price_range` computed as estimate ± the recorded held-out MAE. The response calls it an error band, not confidence.
 
-The Streamlit client sends the API schema directly. Its travel date converts to `days_left`; clock time converts to the training time bands. It intentionally excludes aircraft type and seat modifiers, which are unsupported by the model. Dashboard charts use the saved JSON artifacts rather than fabricated values.
+The React dashboard calls `/locations/search`, `/route-distance`, artifact endpoints and `/predict`. It has Dashboard, Predict Fare, Insights, Model Performance, Dataset, History and About views, responsive sidebar navigation, keyboard-capable airport autocomplete, route swap, current-session history and loading/error/empty states. The travel UI labels the MAE range as an approximate prediction error band. Seat type, luggage, lounge access and aircraft type are visibly disabled as future data features and never affect an estimate. Dashboard charts use saved JSON artifacts rather than fabricated values.
 
-## Methodological caution
+## Testing
 
-The high R² should not be interpreted as a guarantee. The current evaluation uses a random row split, so similar route/airline/class combinations can occur on both sides of the split. Before claims about out-of-route or future-time performance, evaluate grouped route and temporal splits, inspect near-duplicates, and consider prediction intervals built from residual calibration. SkyCast does not provide real-time airline prices or market intelligence.
+The repository contains 23 behavior-focused test functions covering data loading/cleaning, preprocessing, geographic calculations, model loading, location search, API validation, prediction and route distance. The browser build is checked with `npm run build`. Runtime verification includes `/health`, model artifact endpoints, city search, dynamic Leh-to-Delhi distance, valid prediction and invalid-request responses.
+
+## Limitations, conclusion and future scope
+
+The high R² should not be interpreted as a guarantee. The current final validation strategy is a random-row holdout, so similar route/airline/class combinations can occur on both sides of the split. Before claims about out-of-route or future-time performance, evaluate grouped-route and temporal splits, inspect near-duplicates, and calibrate residual-based prediction intervals. Future work can add authentic booking-time, seat, baggage, aircraft and live-inventory sources. SkyCast does not provide real-time airline prices or market intelligence.
