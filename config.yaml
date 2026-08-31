@@ -17,6 +17,7 @@ paths:
   metadata: models/model_metadata.json
   geo_experiment: models/geo_experiment.json
   comparison: models/model_comparison.json
+  validation: models/validation.json
 
 features:
   categorical:

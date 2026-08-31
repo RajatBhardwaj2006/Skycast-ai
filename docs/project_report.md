@@ -24,7 +24,7 @@ Airport lookup comes from `data/reference/airports.csv`. FastAPI resolves IATA/c
 
 Categorical values are one-hot encoded with unknown-category handling; numerical values are passed to the estimator in the saved sklearn pipeline. Linear Regression, Ridge, Random Forest, Gradient Boosting, HistGradientBoosting and XGBoost were evaluated. The production pipeline is a tuned Random Forest with `n_estimators=100`, `max_depth=16`, and `min_samples_leaf=2`.
 
-Recorded held-out results: MAE ₹1,508.89, RMSE ₹3,052.77 and R² 0.9819. The comparison artifact includes linear, ridge, random forest, gradient boosting, histogram gradient boosting and XGBoost candidates. A separate geographic experiment found the categorical + coordinates + distance representation outperformed categorical-only variants under its fixed estimator/split.
+The in-distribution random-row holdout recorded MAE ₹1,508.89, RMSE ₹3,052.77 and R² 0.9819. A stricter route-group holdout, with six complete routes absent from training, recorded MAE ₹3,470.47, RMSE ₹6,321.44 and R² 0.9165. The route-group result is the scientifically defensible metric for unseen-route claims; the random-row result remains useful only for the deployed historical-route distribution. Temporal validation was not performed because `Clean_Dataset.csv` has no legitimate travel or booking date. The comparison artifact includes linear, ridge, random forest, gradient boosting, histogram gradient boosting and XGBoost candidates. A separate geographic experiment found the categorical + coordinates + distance representation outperformed categorical-only variants under its fixed estimator/split.
 
 ## Feature importance
 
@@ -38,8 +38,8 @@ The React dashboard calls `/locations/search`, `/route-distance`, artifact endpo
 
 ## Testing
 
-The repository contains 23 behavior-focused test functions covering data loading/cleaning, preprocessing, geographic calculations, model loading, location search, API validation, prediction and route distance. The browser build is checked with `npm run build`. Runtime verification includes `/health`, model artifact endpoints, city search, dynamic Leh-to-Delhi distance, valid prediction and invalid-request responses.
+The repository contains 25+ behavior-focused test functions covering data loading/cleaning, preprocessing, geographic calculations, model loading, location search, API validation, prediction and route distance. The browser build is checked with `npm run build`. Runtime verification includes all artifact endpoints, searchable Leh and Bangalore lookups, dynamic Leh-to-Delhi and Delhi-to-Bangalore distances, valid predictions and same-airport rejection.
 
 ## Limitations, conclusion and future scope
 
-The high R² should not be interpreted as a guarantee. The current final validation strategy is a random-row holdout, so similar route/airline/class combinations can occur on both sides of the split. Before claims about out-of-route or future-time performance, evaluate grouped-route and temporal splits, inspect near-duplicates, and calibrate residual-based prediction intervals. Future work can add authentic booking-time, seat, baggage, aircraft and live-inventory sources. SkyCast does not provide real-time airline prices or market intelligence.
+The random-row R² should not be interpreted as a guarantee. The final validation artifact records the substantially more conservative route-group audit for unseen-route interpretation. Chronological testing must wait for authentic booking or travel dates. Future work can add authentic booking-time, seat, baggage, aircraft and live-inventory sources. SkyCast does not provide real-time airline prices or market intelligence.

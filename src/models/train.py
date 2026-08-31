@@ -21,6 +21,7 @@ from src.data.load import load_clean_dataset, load_raw_business, load_raw_econom
 from src.data.quality import build_quality_report, save_quality_report
 from src.evaluation.importance import grouped_feature_importance
 from src.evaluation.metrics import regression_metrics
+from src.evaluation.validation import route_group_holdout, temporal_validation_status
 from src.features.geo_features import add_geographic_features
 from src.features.preprocess import build_preprocessor
 from src.utils.config import get_logger, load_config, resolve_path
@@ -267,6 +268,23 @@ def train_model() -> None:
     importance = grouped_feature_importance(best_pipeline)
     y_pred = best_pipeline.predict(X_test)
     final_metrics = regression_metrics(y_test, y_pred)
+    validation_audit = {
+        "selected_model_evaluation": {
+            "strategy": "random_row_holdout",
+            "purpose": "In-distribution estimate for the deployed historical route distribution.",
+            "metrics": final_metrics,
+            "training_rows": int(len(X_train)),
+            "test_rows": int(len(X_test)),
+        },
+        "route_group_audit": route_group_holdout(
+            best_pipeline, featured, feature_cols, random_state=random_state, test_size=test_size
+        ),
+        "temporal_audit": temporal_validation_status(featured),
+        "interpretation": (
+            "Route-group performance is the more defensible indicator for claims about unseen routes. "
+            "The random-row metric remains the deployed model's in-distribution holdout metric."
+        ),
+    }
     price_percentiles = featured["price"].quantile([0.33, 0.66]).to_dict()
 
     metadata = {
@@ -275,7 +293,7 @@ def train_model() -> None:
         "random_state": random_state,
         "training_rows": int(len(X_train)),
         "test_rows": int(len(X_test)),
-        "validation_strategy": "random_row_holdout",
+        "validation_strategy": "random_row_holdout_with_route_group_audit",
         "route_count": int(featured[["source_city", "destination_city"]].drop_duplicates().shape[0]),
         "features": feature_cols,
         "categorical_features": CATEGORICAL,
@@ -317,6 +335,7 @@ def train_model() -> None:
     _json_dump(resolve_path(config["paths"]["feature_importance"]), {"features": importance})
     _json_dump(resolve_path(config["paths"]["metadata"]), metadata)
     _json_dump(resolve_path(config["paths"]["comparison"]), {"rows": comparison_rows, "best_model": best_name})
+    _json_dump(resolve_path(config["paths"]["validation"]), validation_audit)
 
     logger.info(
         "Evaluating models complete. Best model: %s MAE=₹%.2f R²=%.4f",

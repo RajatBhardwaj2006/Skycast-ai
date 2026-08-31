@@ -88,6 +88,11 @@ def geo_experiment():
     return model_service.load_geo_experiment()
 
 
+@app.get("/validation")
+def validation():
+    return model_service.load_validation()
+
+
 @app.get("/dataset-info")
 def dataset_info():
     return {

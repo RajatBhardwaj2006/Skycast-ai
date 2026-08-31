@@ -1,43 +1,93 @@
-# SkyCast — AI Airfare Intelligence
+# SkyCast
 
-SkyCast is a local AI airfare-estimation application. A FastAPI service applies the saved, tuned Random Forest model and a Streamlit dashboard collects only supported model inputs and presents the result with model-backed context.
+AI airfare price estimation: historical Indian domestic fares → a saved scikit-learn pipeline → FastAPI → a searchable React dashboard.
 
-## Features
+**Tagline:** Predict your flight fare before you book.
 
-- Cached model loading; no training happens during a request.
-- Searchable airport/location API and geographic distance calculation.
-- Validated single and batch prediction endpoints.
-- Streamlit prediction flow for origin, destination, airline, class, travel date, time bands, duration and stops.
-- Actual metrics, model comparison, feature importance and geographic experiment results from `models/`.
-- A transparent error band of prediction ± held-out test MAE. It is not a confidence interval or live price quote.
+SkyCast is **not** a live airline feed, booking engine, or ticket shop. Every rupee shown is a **model estimate** from historical training data.
 
-## Architecture
+## Problem statement
 
-`Clean_Dataset.csv → cleaning → geographic features → sklearn preprocessing pipeline → tuned Random Forest → FastAPI → Streamlit`
+Estimate airfare from route, airline, cabin class, stops, duration, booking window, and time-of-day features for a consumer estimation tool.
 
-The model uses airline, departure/arrival time bands, stops, class, source/destination city, duration, days left, coordinates and haversine distance. It does not use aircraft type, baggage, seat selection or other ancillary-product fields.
+## Audit snapshot (do not guess)
 
-## Model and data
+| Dataset | Rows | Columns | Missing | Duplicates | Target |
+|---|---:|---:|---:|---:|---|
+| `Clean_Dataset.csv` | 300,153 | 12 | 0 | 0 | `price` (INR, int) |
+| `business.csv` | 93,487 | 11 | 0 | 0 | `price` (string with commas) |
+| `economy.csv` | 206,774 | 11 | 0 | 2 | `price` (string with commas) |
 
-The training dataset is `Clean_Dataset.csv` (300,153 rows). `business.csv` and `economy.csv` are retained for source/schema reference, not merged into training because a booking timestamp needed to derive `days_left` is unavailable. Geographic features are calculated from `data/reference/airports.csv`.
+**Clean_Dataset columns:** airline, flight, source_city, departure_time, stops, arrival_time, destination_city, class, duration, days_left, price (+ unnamed index).
 
-The final saved model is **Random Forest (tuned)** (`n_estimators=100`, `max_depth=16`, `min_samples_leaf=2`). On the recorded held-out random split it achieved MAE ₹1,508.89, RMSE ₹3,052.77 and R² 0.9819. Full model comparisons are in `models/model_comparison.json`.
+**Training cities in the CSV (six only):** Delhi, Mumbai, Bangalore, Kolkata, Hyderabad, Chennai.
 
-## Setup and run
+**Modeling dataset:** `Clean_Dataset.csv`. `business.csv` / `economy.csv` have travel dates and clock times but **no booking timestamp**, so `days_left` cannot be derived without inventing a scrape date. They are not used as extra training rows.
 
-Install dependencies in a Python 3.10+ environment:
+**UI-only / not in data:** seat type, baggage, lounge, meal, aircraft type, refundability, seat selection. Shown as “coming soon”; **never sent to the model**.
+
+**Flexible routes:** the UI searches `data/reference/airports.csv` (city, airport, IATA, lat/lon). Distance is Haversine `distance_km`. Unknown cities return “Location not found.” Same origin/destination is rejected. The model uses coordinates + distance so new cities do not crash (`OneHotEncoder(handle_unknown="ignore")`). Estimates off the six-city training set show a reliability note.
+
+## Geographic experiment (measured)
+
+HistGradientBoosting, same split:
+
+| Variant | MAE | RMSE | R² |
+|---|---:|---:|---:|
+| A categorical | 2359.50 | 4056.55 | 0.9681 |
+| B + distance | 2273.02 | 3963.61 | 0.9695 |
+| C + coordinates + distance | **2272.16** | **3952.31** | **0.9697** |
+
+Distance and coordinates **slightly improved** this estimator. The production pipeline uses **C** (geo + distance) with a **tuned Random Forest** on the full feature set.
+
+**Hold-out (saved run):** MAE ≈ ₹1,509 · RMSE ≈ ₹3,053 · R² ≈ 0.982 · model: Random Forest (tuned). Retrain to refresh these files; do not treat them as promised forever.
+
+## Install
+
+From `X:\VScode\Artificial_intelligence_n_Machine_learning\SkyCast`:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-Start the API from the repository root:
+## Train
 
 ```bash
-uvicorn backend.app.main:app --reload
+python -m src.models.train
 ```
 
-In another terminal, start the polished React dashboard:
+Writes `models/airfare_pipeline.pkl`, `metrics.json`, `feature_importance.json`, `model_metadata.json`, `geo_experiment.json`, and `data/processed/*`.
+
+## Backend
+
+Run from the **SkyCast root** (so `src` and `backend` import cleanly):
+
+```bash
+python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+- `GET /health`
+- `GET /locations/search?q=Leh`
+- `GET /catalog` · `/model-info` · `/metrics` · `/feature-importance` · `/geo-experiment` · `/dataset-info`
+- `POST /predict` · `POST /batch-predict`
+
+Example:
+
+```json
+{
+  "airline": "Air India",
+  "source_iata": "IXL",
+  "destination_iata": "DEL",
+  "departure_time": "Morning",
+  "arrival_time": "Evening",
+  "stops": "zero",
+  "class": "Economy",
+  "duration": 1.5,
+  "days_left": 20
+}
+```
+
+## Frontend
 
 ```bash
 cd frontend
@@ -45,36 +95,38 @@ npm install
 npm run dev
 ```
 
-It runs at `http://localhost:5173` and uses the FastAPI location-search and prediction endpoints. The original Streamlit client is also available:
+Opens Vite on port 5173. Set `frontend/.env` `VITE_API_URL=http://127.0.0.1:8000`.
+
+## Tests
 
 ```bash
-streamlit run frontend/app.py
+pytest
 ```
 
-The API defaults to `http://127.0.0.1:8000`; set `SKYCAST_API_URL` for a different dashboard target.
+Includes Haversine symmetry (Delhi↔Mumbai), zero self-distance, Leh→Delhi &gt; 0, API health, same-city rejection, negative duration / days_left, and location 404.
 
-## API
+## Architecture
 
-- `GET /health`, `/model-info`, `/metrics`, `/feature-importance`, `/geo-experiment`, `/dataset-info`
-- `GET /catalog`, `GET /locations/search?q=Delhi`, and `GET /route-distance?source_iata=IXL&destination_iata=DEL`
-- `POST /predict` and `POST /batch-predict`
-
-Example request:
-
-```json
-{"source_city":"Delhi","destination_city":"Mumbai","airline":"Air India","class":"Economy","departure_time":"Morning","arrival_time":"Evening","stops":"zero","duration":2.25,"days_left":20}
+```
+User → React (searchable FROM/TO) → FastAPI
+  → resolve IATA/city in airports.csv
+  → Haversine distance_km + lat/lon
+  → saved Pipeline (preprocess + regressor)
+  → estimated INR + model feature importance
 ```
 
-## Training and testing
-
-Use the existing model for normal application use. Retraining is optional and overwrites artifacts:
-
-```bash
-python -m src.models.train
-python -m pytest -q
-python -m compileall backend src frontend
-```
+Details: `docs/architecture.md`, `docs/api.md`, `docs/model_card.md`, `docs/data_dictionary.md`.
 
 ## Limitations
 
-SkyCast is historical-model inference, not a live airline inventory or pricing feed. Its training routes are centred on Delhi, Mumbai, Bangalore, Kolkata, Hyderabad and Chennai; other routes can be accepted using the airport reference data but are flagged as outside the training-city distribution. The strong R² is from a random row split, which can allow similar routes to appear in both train and test partitions; a route- or time-aware validation split would be a valuable next evaluation.
+- Six cities dominate **labels** in training; other airports rely on geography.
+- No live prices, no booking, no fabricated seat-price effects.
+- Class dominates impurity importance in this dataset (Economy vs Business).
+
+## Screenshots
+
+Add product captures under `docs/screenshots/` when you record a demo.
+
+## Future work
+
+Activate seat/baggage/lounge only after those columns exist in real training data. Optional time-aware split if a true booking timestamp appears.

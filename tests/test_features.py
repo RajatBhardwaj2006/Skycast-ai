@@ -34,3 +34,14 @@ def test_distance_finite():
     assert value == value
     assert abs(value) != float("inf")
     assert value > 0
+
+
+def test_unknown_city_does_not_invent_coordinates():
+    from src.geo.locations import LocationNotFoundError
+
+    service = LocationService(PROJECT_ROOT / "data" / "reference" / "airports.csv")
+    try:
+        service.resolve("NotARealCityXYZ")
+        raise AssertionError("expected LocationNotFoundError")
+    except LocationNotFoundError:
+        pass

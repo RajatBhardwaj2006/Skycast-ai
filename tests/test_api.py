@@ -22,6 +22,9 @@ def test_model_metadata_and_artifact_endpoints():
     assert metrics.json()["mae"] > 0
     assert importance.status_code == 200
     assert importance.json()["features"]
+    validation = client.get("/validation")
+    assert validation.status_code == 200
+    assert validation.json()["route_group_audit"]["metrics"]["mae"] > 0
 
 
 def test_location_search_leh():
