@@ -152,9 +152,11 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
     )
     predicted = max(500.0, round(calibrated_market_price, 2))
 
-    # Calibration error uncertainty band
-    calib_mae = float(calibrator.metrics.get("mae_after", 1086.0))
+    # Calibration error uncertainty band — use LORO-validated MAE (no leakage)
+    calib_mae = float(calibrator.metrics.get("mae_after", 1500.0))
     error_band = round(calib_mae, 2)
+    validation_status = calibrator.validation_status if hasattr(calibrator, "validation_status") else "experimental"
+    best_model_name = getattr(calibrator, "_best_model_name", "unknown")
 
     terciles = metadata.get("price_terciles", {})
     importance = load_importance().get("features", [])
@@ -178,38 +180,48 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
     # Live Fares status query
     live_status = get_live_fares(origin.iata, destination.iata, cabin_class=class_type.upper())
 
+    # Calibration label depends on validation status
+    if validation_status == "validated_loro":
+        calib_label = "2026 Market Calibrated (LORO-validated)"
+        calib_note = "Calibrated against multi-route 2026 market evidence with leave-one-route-out cross-validation."
+    else:
+        calib_label = "Experimental market calibration"
+        calib_note = "Experimental calibration — leave-one-route-out validation did not significantly beat uncalibrated baseline."
+
     return {
         "predicted_price": predicted,
         "currency": "INR",
         "model": metadata.get("model_name", "AirfareModelRouter") + " + 2026 Market Calibrator",
-        "confidence_note": "Current 2026 market-calibrated fare estimate based on recent cross-route fare evidence and historical machine learning baselines.",
+        "confidence_note": "2026 market-calibrated fare estimate based on cross-route fare evidence and historical ML baselines.",
         "uncertainty": {
             "typical_error_inr": error_band,
             "low": round(max(500.0, predicted - error_band), 2),
             "high": round(predicted + error_band, 2),
-            "method": "market_calibration_mae",
-            "note": "Typical average absolute error on validated 2026 domestic flights.",
+            "method": "loro_cross_validated_mae",
+            "note": "Leave-one-route-out cross-validated MAE on 2026 market observations.",
         },
         "expected_price_range": {
             "low": round(max(500.0, predicted - error_band), 2),
             "high": round(predicted + error_band, 2),
             "method": "held_out_test_mae",
             "error_band": error_band,
-            "note": "Range is the 2026 calibrated market prediction plus or minus empirical calibration MAE.",
+            "note": "Range is the 2026 calibrated prediction ± LORO cross-validated MAE.",
         },
         "historical_baseline": {
             "raw_model_price": round(raw_hist_price, 2),
             "smearing_corrected_price": hist_baseline,
             "training_era": "2022 Historical Baseline",
-            "note": "Raw machine learning inference trained on 2022 DGCA/Kaggle flight records prior to recent ATF and consolidation inflation.",
+            "note": "Raw ML inference trained on 2022 DGCA/Kaggle flight records.",
         },
         "market_calibration": {
             "calibrated_market_fare": predicted,
             "reference_era": "2026 Live Market",
             "macro_adjustment_inr": round(predicted - hist_baseline, 2),
             "inflation_multiplier": round(predicted / max(1.0, hist_baseline), 3),
-            "method": "Continuous Multi-Route Empirical Ridge Calibration",
-            "note": "Calibrated against multi-route 2026 market evidence reflecting post-2022 ATF hikes, Go First exit, and airline consolidation.",
+            "method": f"LORO-validated {best_model_name} calibration",
+            "validation_status": validation_status,
+            "calibration_label": calib_label,
+            "note": calib_note,
         },
         "source": LocationOut(**origin.to_dict()),
         "destination": LocationOut(**destination.to_dict()),

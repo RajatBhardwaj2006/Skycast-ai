@@ -305,15 +305,15 @@ export default function Predict({ onPredicted }) {
           <section className="card result-hero">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div className="eyebrow" style={{ color: "#b7e4e0" }}>
-                2026 ESTIMATED MARKET FARE
+                {result.market_calibration?.calibration_label || "ESTIMATED MARKET FARE"}
               </div>
-              <span style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem", borderRadius: "4px", background: "rgba(16, 185, 129, 0.2)", color: "#10b981", fontWeight: "bold" }}>
-                2026 Market Calibrated
+              <span style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem", borderRadius: "4px", background: result.market_calibration?.validation_status === "validated_loro" ? "rgba(16, 185, 129, 0.2)" : "rgba(245, 158, 11, 0.2)", color: result.market_calibration?.validation_status === "validated_loro" ? "#10b981" : "#f59e0b", fontWeight: "bold" }}>
+                {result.market_calibration?.validation_status === "validated_loro" ? "✓ LORO Validated" : "⚠ Experimental"}
               </span>
             </div>
             <div className="price">{formatInr(result.predicted_price)}</div>
             <p style={{ fontSize: "0.85rem", opacity: 0.9 }}>
-              Current market-calibrated fare estimate reflecting post-2022 aviation fuel (ATF) inflation and airline consolidation.
+              {result.market_calibration?.note || "Market-calibrated fare estimate."}
             </p>
             <p style={{ marginTop: "0.6rem" }}>
               <strong>{result.source.city} ({result.source.iata}) → {result.destination.city} ({result.destination.iata})</strong>

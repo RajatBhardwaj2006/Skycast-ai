@@ -1,0 +1,163 @@
+{
+  "best_model": "huber",
+  "validation_status": "validated_loro",
+  "mae_no_calibration": 2857.84,
+  "mae_global_inflation": 2017.79,
+  "global_inflation_factor": 1.457,
+  "mae_after": 829.52,
+  "observation_count": 53,
+  "unique_routes": 14,
+  "unique_corridors": 10,
+  "model_comparison": {
+    "none": {
+      "loro_mae": 2857.84,
+      "method": "No calibration"
+    },
+    "global_inflation": {
+      "loro_mae": 2017.79,
+      "method": "Global 1.457x"
+    },
+    "ridge": {
+      "loro_mae": 1223.33,
+      "loro_rmse": 2057.33,
+      "loro_r2": 0.9081,
+      "loco_mae": 1550.14,
+      "method": "ridge"
+    },
+    "huber": {
+      "loro_mae": 829.52,
+      "loro_rmse": 1046.74,
+      "loro_r2": 0.9762,
+      "loco_mae": 879.05,
+      "method": "huber"
+    },
+    "random_forest": {
+      "loro_mae": 2109.26,
+      "loro_rmse": 5043.27,
+      "loro_r2": 0.4477,
+      "loco_mae": 2505.36,
+      "method": "random_forest"
+    },
+    "gradient_boosting": {
+      "loro_mae": 1550.21,
+      "loro_rmse": 2874.47,
+      "loro_r2": 0.8206,
+      "loco_mae": 2194.81,
+      "method": "gradient_boosting"
+    }
+  },
+  "route_validation_table": [
+    {
+      "route": "DEL -> BLR",
+      "historical_ml": 8445.0,
+      "calibrated_oof": 12984.0,
+      "market_fare": 11895.0,
+      "error_pct": 9.2,
+      "out_of_fold": true
+    },
+    {
+      "route": "BLR -> DEL",
+      "historical_ml": 12699.0,
+      "calibrated_oof": 14581.0,
+      "market_fare": 15376.0,
+      "error_pct": -5.2,
+      "out_of_fold": true
+    },
+    {
+      "route": "DEL -> BOM",
+      "historical_ml": 6866.0,
+      "calibrated_oof": 10464.0,
+      "market_fare": 10385.0,
+      "error_pct": 0.8,
+      "out_of_fold": true
+    },
+    {
+      "route": "BOM -> DEL",
+      "historical_ml": 3719.0,
+      "calibrated_oof": 6739.0,
+      "market_fare": 6470.0,
+      "error_pct": 4.2,
+      "out_of_fold": true
+    },
+    {
+      "route": "BOM -> BLR",
+      "historical_ml": 5318.0,
+      "calibrated_oof": 6070.0,
+      "market_fare": 5233.0,
+      "error_pct": 16.0,
+      "out_of_fold": true
+    },
+    {
+      "route": "BLR -> BOM",
+      "historical_ml": 5550.0,
+      "calibrated_oof": 6095.0,
+      "market_fare": 5083.0,
+      "error_pct": 19.9,
+      "out_of_fold": true
+    },
+    {
+      "route": "DEL -> COK",
+      "historical_ml": 6532.0,
+      "calibrated_oof": 11319.0,
+      "market_fare": 10933.0,
+      "error_pct": 3.5,
+      "out_of_fold": true
+    },
+    {
+      "route": "AMD -> COK",
+      "historical_ml": 4987.0,
+      "calibrated_oof": 7717.0,
+      "market_fare": 8525.0,
+      "error_pct": -9.5,
+      "out_of_fold": true
+    },
+    {
+      "route": "GAU -> DEL",
+      "historical_ml": 6862.0,
+      "calibrated_oof": 7787.0,
+      "market_fare": 8783.0,
+      "error_pct": -11.3,
+      "out_of_fold": true
+    },
+    {
+      "route": "DEL -> CCU",
+      "historical_ml": 5275.0,
+      "calibrated_oof": 7433.0,
+      "market_fare": 8028.0,
+      "error_pct": -7.4,
+      "out_of_fold": true
+    },
+    {
+      "route": "DEL -> HYD",
+      "historical_ml": 3691.0,
+      "calibrated_oof": 6948.0,
+      "market_fare": 8238.0,
+      "error_pct": -15.7,
+      "out_of_fold": true
+    },
+    {
+      "route": "DEL -> MAA",
+      "historical_ml": 5550.0,
+      "calibrated_oof": 9113.0,
+      "market_fare": 9040.0,
+      "error_pct": 0.8,
+      "out_of_fold": true
+    },
+    {
+      "route": "HYD -> DEL",
+      "historical_ml": 5890.0,
+      "calibrated_oof": 6587.0,
+      "market_fare": 8498.0,
+      "error_pct": -22.5,
+      "out_of_fold": true
+    },
+    {
+      "route": "CCU -> BLR",
+      "historical_ml": 6607.0,
+      "calibrated_oof": 7867.0,
+      "market_fare": 7150.0,
+      "error_pct": 10.0,
+      "out_of_fold": true
+    }
+  ]
+}
