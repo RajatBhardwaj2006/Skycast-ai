@@ -53,6 +53,40 @@ def route_distance(source_iata: str = Query(..., min_length=3, max_length=3), de
     return {"source": source.to_dict(), "destination": destination.to_dict(), "distance_km": round(service.distance_between(source, destination), 2)}
 
 
+@app.get("/live-fares")
+def live_fares(
+    origin_iata: str = Query(..., min_length=3, max_length=3),
+    destination_iata: str = Query(..., min_length=3, max_length=3),
+    date: str | None = None,
+    cabin: str = Query("ECONOMY"),
+):
+    """Retrieve current airline flight offers via live carrier API or report unconfigured status."""
+    from backend.app.services.live_fares import get_live_fares
+    return get_live_fares(origin_iata, destination_iata, departure_date=date, cabin_class=cabin)
+
+
+@app.get("/comparables")
+def comparables(
+    class_type: str = Query("Economy"),
+    airline: str = Query("Air India"),
+    stops: str = Query("zero"),
+    distance_km: float = Query(1000.0),
+    duration: float = Query(2.0),
+    days_left: int = Query(15),
+    k: int = Query(8, ge=1, le=20),
+):
+    """Query genuine historical flight tickets matching distance, duration, stops, and booking window."""
+    from src.evaluation.comparables import find_nearest_comparables
+    return find_nearest_comparables({
+        "class": class_type,
+        "airline": airline,
+        "stops": stops,
+        "distance_km": distance_km,
+        "duration": duration,
+        "days_left": days_left,
+    }, k=k)
+
+
 @app.get("/catalog")
 def catalog():
     meta = model_service.load_metadata()

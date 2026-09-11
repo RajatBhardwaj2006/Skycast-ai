@@ -16,7 +16,7 @@ def test_model_metadata_and_artifact_endpoints():
     info = client.get("/model-info")
     metrics = client.get("/metrics")
     importance = client.get("/feature-importance")
-    assert info.json()["model_name"] in {"Extra Trees", "Voting Ensemble", "Random Forest", "Random Forest (tuned)", "XGBoost"}
+    assert "AirfareModelRouter" in info.json()["model_name"] or info.json()["model_name"] in {"Extra Trees", "Voting Ensemble", "Random Forest", "XGBoost"}
     assert metrics.status_code == 200
     assert metrics.json()["mae"] > 0
     assert importance.status_code == 200
@@ -166,3 +166,23 @@ def test_booking_window_over_a_year_rejected():
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 422
+
+
+def test_live_fares_endpoint():
+    response = client.get("/live-fares", params={"origin_iata": "DEL", "destination_iata": "BLR"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "configured" in data
+    assert "status" in data
+    assert "currency" in data
+
+
+def test_comparables_endpoint():
+    response = client.get("/comparables", params={"class_type": "Economy", "distance_km": 253.0, "duration": 0.75, "days_left": 15})
+    assert response.status_code == 200
+    data = response.json()
+    assert "count" in data
+    assert data["count"] > 0
+    assert "median" in data
+    assert data["median"] > 0
+

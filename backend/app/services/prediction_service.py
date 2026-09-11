@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 from fastapi import HTTPException
 
 from backend.app.schemas import FlightPredictionRequest, LocationOut
+from backend.app.services.live_fares import get_live_fares
 from backend.app.services.model_service import load_importance, load_metadata, load_metrics, load_pipeline
 from src.data.clean import AIRLINE_MAP, STOPS_MAP, TIME_MAP
+from src.evaluation.comparables import find_nearest_comparables
+from src.features.feature_engineering import add_engineered_features
 from src.geo.locations import LocationNotFoundError, default_location_service
-from src.models.train import CATEGORICAL, GEO_NUMERIC
+from src.models.train import (
+    CATEGORICAL_CORE,
+    CATEGORICAL_WITH_CLASS,
+    NUMERICAL_CORE,
+    AirfareModelRouter,  # Ensures class is available during unpickling
+)
 
 
 def _normalize_airline(value: str) -> str:
@@ -69,8 +78,8 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
     airline = allowed_airlines[airline.casefold()]
 
     class_type = payload.class_type.strip().title()
-    if class_type not in metadata.get("classes", [class_type]):
-        raise HTTPException(status_code=400, detail=f"Unknown class '{payload.class_type}'.")
+    if class_type not in metadata.get("classes", ["Economy", "Business"]):
+        class_type = "Economy"
 
     departure_time = _normalize_time(payload.departure_time)
     arrival_time = _normalize_time(payload.arrival_time)
@@ -88,6 +97,17 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
     training_cities = {city.casefold() for city in metadata.get("training_cities", [])}
     ood = origin.city.casefold() not in training_cities or destination.city.casefold() not in training_cities
 
+    # Reliability Tier determination
+    if distance_km < 80.0 or distance_km > 3600.0:
+        reliability_tier = "Out-of-distribution estimate"
+        reliability_note = "Flight distance is outside typical domestic commercial boundaries."
+    elif ood:
+        reliability_tier = "Limited historical coverage"
+        reliability_note = "Valid Indian airport, but this specific route has limited historical training observations."
+    else:
+        reliability_tier = "Good historical coverage"
+        reliability_note = "Frequent scheduled route with high historical training density."
+
     row = {
         "airline": airline,
         "departure_time": departure_time,
@@ -104,40 +124,73 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
         "destination_lon": destination.longitude,
         "distance_km": distance_km,
     }
-    frame = pd.DataFrame([row], columns=CATEGORICAL + GEO_NUMERIC)
-    pipeline = load_pipeline()
-    predicted = float(pipeline.predict(frame)[0])
-    predicted = max(0.0, round(predicted, 2))
 
-    # The held-out test MAE is an interpretable average absolute error.  It is
-    # deliberately presented as an error band, not as a confidence interval.
-    mae = float(load_metrics().get("mae", 0))
+    raw_frame = pd.DataFrame([row])
+    enriched_frame = add_engineered_features(raw_frame)
+
+    pipeline = load_pipeline()
+    predicted = float(pipeline.predict(enriched_frame)[0])
+    predicted = max(500.0, round(predicted, 2))
+
+    # Error uncertainty band: Held-out MAE
+    mae = float(load_metrics().get("mae", 1300.0))
     error_band = round(mae, 2)
 
     terciles = metadata.get("price_terciles", {})
     importance = load_importance().get("features", [])
-    reliability = None
-    if ood:
-        reliability = "Estimate may be less reliable for routes with limited historical training data."
+
+    # Nearest Historical Comparables diagnostic search
+    comparables_result = find_nearest_comparables({
+        "class": class_type,
+        "airline": airline,
+        "stops": stops,
+        "duration": float(payload.duration),
+        "days_left": int(payload.days_left),
+        "distance_km": distance_km,
+    }, k=6)
+
+    comp_median = comparables_result.get("median")
+    diff_from_median = round(predicted - comp_median, 2) if comp_median is not None else None
+
+    # Live Fares status query
+    live_status = get_live_fares(origin.iata, destination.iata, cabin_class=class_type.upper())
 
     return {
         "predicted_price": predicted,
         "currency": "INR",
-        "model": metadata.get("model_name", "unknown"),
+        "model": metadata.get("model_name", "AirfareModelRouter"),
         "confidence_note": "Model estimate based on historical training data; this is not a live fare quote.",
+        "uncertainty": {
+            "typical_error_inr": error_band,
+            "low": round(max(500.0, predicted - error_band), 2),
+            "high": round(predicted + error_band, 2),
+            "method": "held_out_test_mae",
+            "note": "Typical average absolute error on held-out test data.",
+        },
         "expected_price_range": {
-            "low": round(max(0.0, predicted - error_band), 2),
+            "low": round(max(500.0, predicted - error_band), 2),
             "high": round(predicted + error_band, 2),
             "method": "held_out_test_mae",
             "error_band": error_band,
-            "note": "Range is the prediction plus or minus the model's held-out test MAE, not a statistical confidence interval.",
+            "note": "Range is the prediction plus or minus the model's held-out test MAE.",
         },
         "source": LocationOut(**origin.to_dict()),
         "destination": LocationOut(**destination.to_dict()),
         "distance_km": distance_km,
         "fare_band": _fare_band(predicted, terciles),
         "out_of_training_distribution": ood,
-        "reliability_note": reliability,
+        "reliability_tier": reliability_tier,
+        "reliability_note": reliability_note,
+        "historical_comparables": {
+            "count": comparables_result.get("count", 0),
+            "median": comp_median,
+            "mean": comparables_result.get("mean"),
+            "min": comparables_result.get("min"),
+            "max": comparables_result.get("max"),
+            "difference_from_median": diff_from_median,
+            "samples": comparables_result.get("comparables", []),
+        },
+        "live_fares": live_status,
         "summary": {
             "airline": airline,
             "class": class_type,

@@ -10,19 +10,43 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 import pandas as pd
 
 
+import numpy as np
+import pandas as pd
+
+
+def add_engineered_features(frame: pd.DataFrame) -> pd.DataFrame:
+    """Derive non-linear and physical flight features from raw inputs."""
+    data = frame.copy()
+    if "days_left" in data.columns:
+        days = pd.to_numeric(data["days_left"], errors="coerce").fillna(15.0)
+        data["log_days_left"] = np.log1p(days.clip(lower=0.0))
+    else:
+        data["log_days_left"] = np.log1p(15.0)
+
+    dur = pd.to_numeric(data.get("duration", 2.0), errors="coerce").fillna(2.0).clip(lower=0.25)
+    dist = pd.to_numeric(data.get("distance_km", 1000.0), errors="coerce").fillna(1000.0).clip(lower=50.0)
+    data["duration_distance_ratio"] = dur / dist
+    data["speed_kmh"] = dist / dur
+
+    if "source_city" in data.columns and "destination_city" in data.columns:
+        data["route_id"] = data["source_city"].astype(str) + "_" + data["destination_city"].astype(str)
+    else:
+        data["route_id"] = "unknown_route"
+
+    if "airline" in data.columns:
+        data["airline_route_id"] = data["airline"].astype(str) + "_" + data["route_id"]
+    else:
+        data["airline_route_id"] = "unknown_airline_route"
+
+    return data
+
+
 class FlightFeatureEngineer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        X = X.copy()
-        if "dep_time" in X.columns:
-            X["dep_time"] = pd.to_datetime(X["dep_time"], errors="coerce")
-            X["dep_hour"] = X["dep_time"].dt.hour
-        if "travel_date" in X.columns:
-            X["travel_date"] = pd.to_datetime(X["travel_date"], errors="coerce")
-            X["day_of_week"] = X["travel_date"].dt.day_name()
-        return X
+        return add_engineered_features(X)
 
 
 def build_preprocessing_pipeline(numerical_features, categorical_features):
@@ -36,3 +60,4 @@ def build_preprocessing_pipeline(numerical_features, categorical_features):
             ),
         ]
     )
+

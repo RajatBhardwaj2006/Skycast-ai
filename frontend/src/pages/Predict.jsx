@@ -313,18 +313,20 @@ export default function Predict({ onPredicted }) {
               <br />
               {result.summary.airline} • {result.summary.class} • {formatStops(result.summary.stops)}
             </p>
-            {result.out_of_training_distribution ? (
-              <div style={{ marginTop: "0.8rem", padding: "0.6rem 0.8rem", borderRadius: "6px", background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
-                <strong style={{ color: "#f59e0b" }}>⚠️ Limited historical training coverage</strong>
-                <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", opacity: 0.9 }}>
-                  The airport is supported geographically, but this exact route has limited historical observations in the training data.
-                </p>
+            {result.reliability_tier === "Good historical coverage" ? (
+              <div style={{ marginTop: "0.8rem", padding: "0.5rem 0.8rem", borderRadius: "6px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                <strong style={{ color: "#10b981" }}>✓ {result.reliability_tier}</strong>
+                <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", opacity: 0.9 }}>{result.reliability_note}</p>
               </div>
             ) : (
-              <div style={{ marginTop: "0.8rem", padding: "0.4rem 0.8rem", borderRadius: "6px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
-                <strong style={{ color: "#10b981" }}>✓ Good historical coverage</strong>
+              <div style={{ marginTop: "0.8rem", padding: "0.5rem 0.8rem", borderRadius: "6px", background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                <strong style={{ color: "#f59e0b" }}>⚠️ {result.reliability_tier || "Limited historical coverage"}</strong>
+                <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", opacity: 0.9 }}>{result.reliability_note}</p>
               </div>
             )}
+            <p className="muted" style={{ marginTop: "0.6rem", fontSize: "0.82rem" }}>
+              Typical historical error: ±{formatInr(result.uncertainty?.typical_error_inr || result.expected_price_range?.error_band)} (Expected range: {formatInr(result.expected_price_range?.low)} – {formatInr(result.expected_price_range?.high)})
+            </p>
           </section>
 
           <section className="card">
@@ -366,21 +368,87 @@ export default function Predict({ onPredicted }) {
                   <td><strong>{result.fare_band}</strong> (calculated from historical price terciles)</td>
                 </tr>
                 <tr>
-                  <th>Model used</th>
-                  <td>{result.model}</td>
+                  <th>Historical median</th>
+                  <td>{result.historical_comparables?.median ? formatInr(result.historical_comparables.median) : "N/A"}</td>
                 </tr>
                 <tr>
-                  <th>Reliability status</th>
-                  <td>{result.out_of_training_distribution ? "Limited historical coverage" : "Good historical coverage"}</td>
+                  <th>Reliability</th>
+                  <td>{result.reliability_tier || (result.out_of_training_distribution ? "Limited coverage" : "Good coverage")}</td>
                 </tr>
               </tbody>
             </table>
           </section>
 
+          {result.historical_comparables?.samples?.length > 0 && (
+            <section className="card" style={{ gridColumn: "1 / -1" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2>Nearest Historical Comparables (Diagnostic Evidence)</h2>
+                <div style={{ fontSize: "0.88rem" }}>
+                  Historical Median: <strong>{formatInr(result.historical_comparables.median)}</strong>
+                  {result.historical_comparables.difference_from_median != null && (
+                    <span style={{ marginLeft: "0.8rem", color: result.historical_comparables.difference_from_median > 0 ? "#f59e0b" : "#10b981" }}>
+                      ({result.historical_comparables.difference_from_median > 0 ? "+" : ""}{formatInr(result.historical_comparables.difference_from_median)} vs model)
+                    </span>
+                  )}
+                </div>
+              </div>
+              <p className="muted" style={{ fontSize: "0.82rem", margin: "0.4rem 0 0.8rem" }}>
+                Actual tickets from historical data matching this airline, class, stops, duration, and booking window.
+              </p>
+              <table className="table" style={{ fontSize: "0.85rem" }}>
+                <thead>
+                  <tr>
+                    <th>Comparable Route</th>
+                    <th>Airline</th>
+                    <th>Stops</th>
+                    <th>Duration</th>
+                    <th>Days Left</th>
+                    <th>Distance</th>
+                    <th style={{ textAlign: "right" }}>Actual Fare</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.historical_comparables.samples.map((c, i) => (
+                    <tr key={i}>
+                      <td>{c.source_city} → {c.destination_city}</td>
+                      <td>{c.airline}</td>
+                      <td>{formatStops(c.stops)}</td>
+                      <td>{c.duration}h</td>
+                      <td>{c.days_left}d</td>
+                      <td>{c.distance_km} km</td>
+                      <td style={{ textAlign: "right", fontWeight: "bold" }}>{formatInr(c.price)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
+
+          <section className="card" style={{ gridColumn: "1 / -1" }}>
+            <h2>Real-Time Live Airline Fares (Current Market)</h2>
+            {result.live_fares?.configured ? (
+              <div style={{ marginTop: "0.6rem" }}>
+                <p>Provider: <strong>{result.live_fares.provider}</strong></p>
+                <div style={{ display: "flex", gap: "2rem", marginTop: "0.5rem" }}>
+                  <div>Lowest Live Quote: <strong>{formatInr(result.live_fares.lowest_fare)}</strong></div>
+                  <div>Median Live Quote: <strong>{formatInr(result.live_fares.median_fare)}</strong></div>
+                  <div>Available Offers: <strong>{result.live_fares.live_offers_count}</strong></div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: "0.6rem", padding: "0.8rem 1rem", borderRadius: "6px", background: "rgba(255, 255, 255, 0.04)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                <strong style={{ color: "#94a3b8" }}>ℹ️ Live Carrier Offers API: Unconfigured</strong>
+                <p style={{ margin: "0.3rem 0 0", fontSize: "0.82rem", opacity: 0.85 }}>
+                  Real-time ticket search connector is ready for Amadeus (`AMADEUS_CLIENT_ID` / `AMADEUS_CLIENT_SECRET`) and Duffel (`DUFFEL_API_TOKEN`). When credentials are configured in your backend environment, live quotes will appear here alongside the historical ML estimate.
+                </p>
+              </div>
+            )}
+          </section>
+
           <section className="card">
-            <h2>Global model feature importance</h2>
+            <h2>Model feature importance (Economy Class)</h2>
             <p className="muted" style={{ fontSize: "0.85rem" }}>
-              These values describe which features the model relies on across its predictions. They are not causal explanations of this individual fare.
+              Dynamic factors driving fares in this class. Class is isolated as its own model so physical features and booking window drive 100% of the variance.
             </p>
             <div className="bars" style={{ marginTop: "0.8rem" }}>
               {(result.feature_importance || []).slice(0, 8).map((item) => (

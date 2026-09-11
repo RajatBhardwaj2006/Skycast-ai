@@ -1,22 +1,28 @@
 {
-  "model_name": "Extra Trees",
+  "model_name": "AirfareModelRouter (XGBoost)",
+  "architecture": "Dual-Model Class-Aware Router (Log-Transformed Target)",
   "target": "price",
   "random_state": 42,
   "training_rows": 248417,
   "test_rows": 62105,
-  "validation_strategy": "random_row_holdout_with_route_and_airport_group_audit",
+  "economy_rows": 206666,
+  "business_rows": 93487,
+  "validation_strategy": "4_split_comprehensive_audit",
   "route_count": 31,
   "features": [
     "airline",
     "departure_time",
     "arrival_time",
     "stops",
-    "class",
     "source_city",
     "destination_city",
+    "route_id",
     "duration",
     "days_left",
+    "log_days_left",
     "distance_km",
+    "duration_distance_ratio",
+    "speed_kmh",
     "source_lat",
     "source_lon",
     "destination_lat",
@@ -27,40 +33,69 @@
     "departure_time",
     "arrival_time",
     "stops",
-    "class",
     "source_city",
-    "destination_city"
+    "destination_city",
+    "route_id"
   ],
   "numerical_features": [
     "duration",
     "days_left",
+    "log_days_left",
     "distance_km",
+    "duration_distance_ratio",
+    "speed_kmh",
     "source_lat",
     "source_lon",
     "destination_lat",
     "destination_lon"
   ],
   "metrics": {
-    "mae": 1315.483406427785,
-    "mse": 7355702.31478491,
-    "rmse": 2712.1398036946603,
-    "r2": 0.985400850155839
+    "mae": 1512.4015251152912,
+    "mse": 8229135.753310278,
+    "rmse": 2868.6470248725755,
+    "r2": 0.9836673126767186
   },
   "route_group_metrics": {
-    "mae": 3290.2354921725373,
-    "mse": 33408816.115662325,
-    "rmse": 5780.035996052475,
-    "r2": 0.9357602664406635
+    "mae": 1539.6172117996173,
+    "mse": 8503848.72487481,
+    "rmse": 2916.1359235938935,
+    "r2": 0.983648478460787
   },
   "airport_group_metrics": {
-    "mae": 3442.016207726361,
-    "mse": 33877767.69945895,
-    "rmse": 5820.461124297537,
-    "r2": 0.9367450070869071
+    "mae": 1529.143100710504,
+    "mse": 9100286.3862412,
+    "rmse": 3016.668093483471,
+    "r2": 0.98300836832062
   },
-  "training_timestamp": "2026-09-11T05:45:47.362715+00:00",
-  "dataset": "merged_data.csv (Clean_Dataset.csv + IndianFlightdata)",
-  "unknown_category_handling": "OneHotEncoder(handle_unknown='ignore')",
+  "time_split_metrics": {
+    "mae": 2660.689196680049,
+    "mse": 18576371.14748229,
+    "rmse": 4310.03145550961,
+    "r2": 0.9606957553177036
+  },
+  "economy_benchmark": {
+    "model": "XGBoost",
+    "random_mae": 862.7833862304688,
+    "random_rmse": 1540.835893273518,
+    "random_r2": 0.8266007304191589,
+    "route_group_mae": 1269.7589111328125,
+    "route_group_rmse": 2045.970796468024,
+    "route_group_r2": 0.7245755791664124,
+    "airport_group_mae": 1350.001708984375,
+    "airport_group_r2": 0.7023437023162842,
+    "time_split_mae": 2030.7322998046875,
+    "time_split_r2": 0.3612501621246338,
+    "training_seconds": 3.228,
+    "inference_ms_per_1k": 2.796
+  },
+  "business_benchmark": {
+    "mae": 2924.042236328125,
+    "mse": 21820602.0,
+    "rmse": 4671.252722771484,
+    "r2": 0.8709706664085388
+  },
+  "training_timestamp": "2026-09-11T06:13:05.623540+00:00",
+  "dataset": "Clean_Dataset.csv + IndianFlightdata (deduplicated)",
   "geographic_features": true,
   "unsupported_features": [
     "seat_type",
@@ -90,9 +125,8 @@
     "Vistara Premium economy"
   ],
   "classes": [
-    "Business",
     "Economy",
-    "Unknown"
+    "Business"
   ],
   "stops": [
     "nan",
