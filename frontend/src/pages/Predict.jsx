@@ -303,16 +303,41 @@ export default function Predict({ onPredicted }) {
       {result && (
         <div className="grid grid-2" style={{ marginTop: "1rem" }}>
           <section className="card result-hero">
-            <div className="eyebrow" style={{ color: "#b7e4e0" }}>
-              ESTIMATED AIRFARE
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="eyebrow" style={{ color: "#b7e4e0" }}>
+                2026 ESTIMATED MARKET FARE
+              </div>
+              <span style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem", borderRadius: "4px", background: "rgba(16, 185, 129, 0.2)", color: "#10b981", fontWeight: "bold" }}>
+                2026 Market Calibrated
+              </span>
             </div>
             <div className="price">{formatInr(result.predicted_price)}</div>
-            <p>Historical model estimate — not a live ticket price.</p>
+            <p style={{ fontSize: "0.85rem", opacity: 0.9 }}>
+              Current market-calibrated fare estimate reflecting post-2022 aviation fuel (ATF) inflation and airline consolidation.
+            </p>
             <p style={{ marginTop: "0.6rem" }}>
               <strong>{result.source.city} ({result.source.iata}) → {result.destination.city} ({result.destination.iata})</strong>
               <br />
               {result.summary.airline} • {result.summary.class} • {formatStops(result.summary.stops)}
             </p>
+
+            {/* Historical Baseline Comparison Pill */}
+            {result.historical_baseline && (
+              <div style={{ marginTop: "0.8rem", padding: "0.6rem 0.8rem", borderRadius: "6px", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.15)", fontSize: "0.82rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.2rem" }}>
+                  <span style={{ color: "#94a3b8" }}>2022 Historical ML Baseline:</span>
+                  <strong>{formatInr(result.historical_baseline.smearing_corrected_price || result.historical_baseline.raw_model_price)}</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.2rem" }}>
+                  <span style={{ color: "#94a3b8" }}>Macro Inflation Adjustment:</span>
+                  <strong style={{ color: "#38bdf8" }}>+{formatInr(result.market_calibration?.macro_adjustment_inr || 0)} ({result.market_calibration?.inflation_multiplier || 1}x)</strong>
+                </div>
+                <p style={{ margin: "0.3rem 0 0", fontSize: "0.75rem", color: "#cbd5e1" }}>
+                  {result.historical_baseline.note}
+                </p>
+              </div>
+            )}
+
             {result.reliability_tier === "Good historical coverage" ? (
               <div style={{ marginTop: "0.8rem", padding: "0.5rem 0.8rem", borderRadius: "6px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
                 <strong style={{ color: "#10b981" }}>✓ {result.reliability_tier}</strong>
@@ -325,12 +350,12 @@ export default function Predict({ onPredicted }) {
               </div>
             )}
             <p className="muted" style={{ marginTop: "0.6rem", fontSize: "0.82rem" }}>
-              Typical historical error: ±{formatInr(result.uncertainty?.typical_error_inr || result.expected_price_range?.error_band)} (Expected range: {formatInr(result.expected_price_range?.low)} – {formatInr(result.expected_price_range?.high)})
+              Typical calibration error: ±{formatInr(result.uncertainty?.typical_error_inr || result.expected_price_range?.error_band)} (Expected range: {formatInr(result.expected_price_range?.low)} – {formatInr(result.expected_price_range?.high)})
             </p>
           </section>
 
           <section className="card">
-            <h2>Fare summary</h2>
+            <h2>Fare Summary & Analytics</h2>
             <table className="table">
               <tbody>
                 <tr>
@@ -364,11 +389,15 @@ export default function Predict({ onPredicted }) {
                   <td>{result.summary.days_left} days</td>
                 </tr>
                 <tr>
-                  <th>Fare band</th>
-                  <td><strong>{result.fare_band}</strong> (calculated from historical price terciles)</td>
+                  <th>2026 Market Estimate</th>
+                  <td><strong>{formatInr(result.predicted_price)}</strong></td>
                 </tr>
                 <tr>
-                  <th>Historical median</th>
+                  <th>2022 ML Baseline</th>
+                  <td>{result.historical_baseline ? formatInr(result.historical_baseline.raw_model_price) : "N/A"}</td>
+                </tr>
+                <tr>
+                  <th>Directional 2022 Median</th>
                   <td>{result.historical_comparables?.median ? formatInr(result.historical_comparables.median) : "N/A"}</td>
                 </tr>
                 <tr>
@@ -382,35 +411,41 @@ export default function Predict({ onPredicted }) {
           {result.historical_comparables?.samples?.length > 0 && (
             <section className="card" style={{ gridColumn: "1 / -1" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h2>Nearest Historical Comparables (Diagnostic Evidence)</h2>
+                <div>
+                  <h2>Nearest Historical Flight Tickets (2022 Records)</h2>
+                  <span style={{ fontSize: "0.8rem", padding: "0.15rem 0.4rem", borderRadius: "4px", background: result.historical_comparables.route_match === "exact_directional" ? "rgba(16, 185, 129, 0.2)" : "rgba(245, 158, 11, 0.2)", color: result.historical_comparables.route_match === "exact_directional" ? "#10b981" : "#f59e0b" }}>
+                    {result.historical_comparables.route_match === "exact_directional" ? "✓ Exact Directional Route" : "Corridor Similarity"}
+                  </span>
+                </div>
                 <div style={{ fontSize: "0.88rem" }}>
-                  Historical Median: <strong>{formatInr(result.historical_comparables.median)}</strong>
-                  {result.historical_comparables.difference_from_median != null && (
-                    <span style={{ marginLeft: "0.8rem", color: result.historical_comparables.difference_from_median > 0 ? "#f59e0b" : "#10b981" }}>
-                      ({result.historical_comparables.difference_from_median > 0 ? "+" : ""}{formatInr(result.historical_comparables.difference_from_median)} vs model)
-                    </span>
-                  )}
+                  2022 Historical Median: <strong>{formatInr(result.historical_comparables.median)}</strong>
                 </div>
               </div>
               <p className="muted" style={{ fontSize: "0.82rem", margin: "0.4rem 0 0.8rem" }}>
-                Actual tickets from historical data matching this airline, class, stops, duration, and booking window.
+                {result.historical_comparables.note || "Actual tickets from historical data matching this airline, class, stops, duration, and booking window."}
               </p>
               <table className="table" style={{ fontSize: "0.85rem" }}>
                 <thead>
                   <tr>
                     <th>Comparable Route</th>
+                    <th>Match Type</th>
                     <th>Airline</th>
                     <th>Stops</th>
                     <th>Duration</th>
                     <th>Days Left</th>
                     <th>Distance</th>
-                    <th style={{ textAlign: "right" }}>Actual Fare</th>
+                    <th style={{ textAlign: "right" }}>2022 Fare</th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.historical_comparables.samples.map((c, i) => (
                     <tr key={i}>
                       <td>{c.source_city} → {c.destination_city}</td>
+                      <td>
+                        <span style={{ fontSize: "0.75rem", padding: "0.1rem 0.35rem", borderRadius: "3px", background: c.match_type === "exact_route" ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.08)", color: c.match_type === "exact_route" ? "#10b981" : "#94a3b8" }}>
+                          {c.match_type === "exact_route" ? "Exact" : c.match_type === "reverse_route" ? "Reverse" : "Corridor"}
+                        </span>
+                      </td>
                       <td>{c.airline}</td>
                       <td>{formatStops(c.stops)}</td>
                       <td>{c.duration}h</td>
@@ -423,6 +458,7 @@ export default function Predict({ onPredicted }) {
               </table>
             </section>
           )}
+
 
           <section className="card" style={{ gridColumn: "1 / -1" }}>
             <h2>Real-Time Live Airline Fares (Current Market)</h2>

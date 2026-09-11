@@ -6,11 +6,19 @@ from fastapi import HTTPException
 
 from backend.app.schemas import FlightPredictionRequest, LocationOut
 from backend.app.services.live_fares import get_live_fares
-from backend.app.services.model_service import load_importance, load_metadata, load_metrics, load_pipeline
+from backend.app.services.model_service import (
+    load_importance,
+    load_market_calibrator,
+    load_metadata,
+    load_metrics,
+    load_pipeline,
+)
 from src.data.clean import AIRLINE_MAP, STOPS_MAP, TIME_MAP
 from src.evaluation.comparables import find_nearest_comparables
 from src.features.feature_engineering import add_engineered_features
 from src.geo.locations import LocationNotFoundError, default_location_service
+from src.models.market_calibrator import DUAN_SMEARING_FACTOR
+
 from src.models.train import (
     CATEGORICAL_CORE,
     CATEGORICAL_WITH_CLASS,
@@ -129,18 +137,32 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
     enriched_frame = add_engineered_features(raw_frame)
 
     pipeline = load_pipeline()
-    predicted = float(pipeline.predict(enriched_frame)[0])
-    predicted = max(500.0, round(predicted, 2))
+    raw_hist_price = float(pipeline.predict(enriched_frame)[0])
+    # Apply Duan's smearing correction factor to reduce log-retransformation Jensen bias
+    smearing_hist_price = raw_hist_price * DUAN_SMEARING_FACTOR
+    hist_baseline = max(500.0, round(smearing_hist_price, 2))
 
-    # Error uncertainty band: Held-out MAE
-    mae = float(load_metrics().get("mae", 1300.0))
-    error_band = round(mae, 2)
+    # Market Calibration Layer: continuous econometric transfer mapping 2022 baseline to 2026 market
+    calibrator = load_market_calibrator()
+    calibrated_market_price = calibrator.predict(
+        historical_price=hist_baseline,
+        distance_km=distance_km,
+        days_left=int(payload.days_left),
+        class_type=class_type,
+    )
+    predicted = max(500.0, round(calibrated_market_price, 2))
+
+    # Calibration error uncertainty band
+    calib_mae = float(calibrator.metrics.get("mae_after", 1086.0))
+    error_band = round(calib_mae, 2)
 
     terciles = metadata.get("price_terciles", {})
     importance = load_importance().get("features", [])
 
-    # Nearest Historical Comparables diagnostic search
+    # Directional Historical Comparables diagnostic search
     comparables_result = find_nearest_comparables({
+        "source_city": origin.city,
+        "destination_city": destination.city,
         "class": class_type,
         "airline": airline,
         "stops": stops,
@@ -150,7 +172,8 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
     }, k=6)
 
     comp_median = comparables_result.get("median")
-    diff_from_median = round(predicted - comp_median, 2) if comp_median is not None else None
+    diff_from_calibrated = round(predicted - comp_median, 2) if comp_median is not None else None
+    diff_from_historical = round(hist_baseline - comp_median, 2) if comp_median is not None else None
 
     # Live Fares status query
     live_status = get_live_fares(origin.iata, destination.iata, cabin_class=class_type.upper())
@@ -158,21 +181,35 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
     return {
         "predicted_price": predicted,
         "currency": "INR",
-        "model": metadata.get("model_name", "AirfareModelRouter"),
-        "confidence_note": "Model estimate based on historical training data; this is not a live fare quote.",
+        "model": metadata.get("model_name", "AirfareModelRouter") + " + 2026 Market Calibrator",
+        "confidence_note": "Current 2026 market-calibrated fare estimate based on recent cross-route fare evidence and historical machine learning baselines.",
         "uncertainty": {
             "typical_error_inr": error_band,
             "low": round(max(500.0, predicted - error_band), 2),
             "high": round(predicted + error_band, 2),
-            "method": "held_out_test_mae",
-            "note": "Typical average absolute error on held-out test data.",
+            "method": "market_calibration_mae",
+            "note": "Typical average absolute error on validated 2026 domestic flights.",
         },
         "expected_price_range": {
             "low": round(max(500.0, predicted - error_band), 2),
             "high": round(predicted + error_band, 2),
             "method": "held_out_test_mae",
             "error_band": error_band,
-            "note": "Range is the prediction plus or minus the model's held-out test MAE.",
+            "note": "Range is the 2026 calibrated market prediction plus or minus empirical calibration MAE.",
+        },
+        "historical_baseline": {
+            "raw_model_price": round(raw_hist_price, 2),
+            "smearing_corrected_price": hist_baseline,
+            "training_era": "2022 Historical Baseline",
+            "note": "Raw machine learning inference trained on 2022 DGCA/Kaggle flight records prior to recent ATF and consolidation inflation.",
+        },
+        "market_calibration": {
+            "calibrated_market_fare": predicted,
+            "reference_era": "2026 Live Market",
+            "macro_adjustment_inr": round(predicted - hist_baseline, 2),
+            "inflation_multiplier": round(predicted / max(1.0, hist_baseline), 3),
+            "method": "Continuous Multi-Route Empirical Ridge Calibration",
+            "note": "Calibrated against multi-route 2026 market evidence reflecting post-2022 ATF hikes, Go First exit, and airline consolidation.",
         },
         "source": LocationOut(**origin.to_dict()),
         "destination": LocationOut(**destination.to_dict()),
@@ -187,7 +224,9 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
             "mean": comparables_result.get("mean"),
             "min": comparables_result.get("min"),
             "max": comparables_result.get("max"),
-            "difference_from_median": diff_from_median,
+            "difference_from_median": diff_from_calibrated,
+            "difference_from_historical_median": diff_from_historical,
+            "route_match": comparables_result.get("route_match", "corridor_fallback"),
             "samples": comparables_result.get("comparables", []),
         },
         "live_fares": live_status,
@@ -202,3 +241,4 @@ def predict_fare(payload: FlightPredictionRequest) -> dict:
         },
         "feature_importance": importance,
     }
+

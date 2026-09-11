@@ -7,7 +7,19 @@ from pathlib import Path
 import joblib
 from fastapi import HTTPException
 
-from backend.app.config import COMPARISON_PATH, GEO_EXPERIMENT_PATH, IMPORTANCE_PATH, METADATA_PATH, METRICS_PATH, PIPELINE_PATH, QUALITY_PATH, DECISION_PATH, VALIDATION_PATH
+from backend.app.config import (
+    COMPARISON_PATH,
+    DECISION_PATH,
+    GEO_EXPERIMENT_PATH,
+    IMPORTANCE_PATH,
+    MARKET_CALIBRATOR_PATH,
+    MARKET_VALIDATION_PATH,
+    METADATA_PATH,
+    METRICS_PATH,
+    PIPELINE_PATH,
+    QUALITY_PATH,
+    VALIDATION_PATH,
+)
 
 
 def _read_json(path: Path) -> dict:
@@ -61,3 +73,15 @@ def load_decision() -> dict:
 
 def load_validation() -> dict:
     return _read_json(VALIDATION_PATH)
+
+
+@lru_cache(maxsize=1)
+def load_market_calibrator():
+    from src.models.market_calibrator import MarketCalibrator
+    return MarketCalibrator.load(MARKET_CALIBRATOR_PATH)
+
+
+def load_market_validation() -> list[dict]:
+    if not MARKET_VALIDATION_PATH.exists():
+        return []
+    return json.loads(MARKET_VALIDATION_PATH.read_text(encoding="utf-8"))

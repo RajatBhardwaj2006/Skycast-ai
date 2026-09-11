@@ -28,7 +28,8 @@ def find_nearest_comparables(
 ) -> dict[str, Any]:
     """Find genuine historical observations that are physically and commercially similar to the query.
     
-    This is a diagnostic explanation layer, NOT a price override.
+    Strictly prioritizes exact directional route matches (e.g. DEL -> BLR) to prevent
+    directional cross-contamination with reverse routes (e.g. BLR -> DEL).
     """
     df = dataset if dataset is not None else load_comparables_data()
     if df.empty:
@@ -48,39 +49,68 @@ def find_nearest_comparables(
     target_dist = float(query.get("distance_km", 1000.0))
     target_dur = float(query.get("duration", 2.0))
     target_days = float(query.get("days_left", 15.0))
+    target_source = str(query.get("source_city", "")).strip().title()
+    target_destination = str(query.get("destination_city", "")).strip().title()
 
     # 1. Filter by class if known
     sub = df[df["class"].astype(str).str.title() == target_class].copy()
     if sub.empty:
         sub = df.copy()
 
-    # 2. Prefer same stops if enough records exist
-    if target_stops in sub["stops"].values:
-        same_stops = sub[sub["stops"] == target_stops]
-        if len(same_stops) >= k:
-            sub = same_stops
+    # 2. Check directional and reverse route availability
+    is_exact = (
+        (sub["source_city"].astype(str).str.title() == target_source)
+        & (sub["destination_city"].astype(str).str.title() == target_destination)
+    ) if target_source and target_destination else pd.Series(False, index=sub.index)
+
+    is_reverse = (
+        (sub["source_city"].astype(str).str.title() == target_destination)
+        & (sub["destination_city"].astype(str).str.title() == target_source)
+    ) if target_source and target_destination else pd.Series(False, index=sub.index)
+
+    same_airline = (sub["airline"].astype(str).str.casefold() == target_airline.casefold())
+    same_stops = (sub["stops"].astype(str).str.casefold() == target_stops.casefold())
 
     # 3. Calculate feature distance in normalized space
-    d_dist = (sub["distance_km"] - target_dist) / 400.0
+    d_dist = (sub["distance_km"] - target_dist) / 300.0
     d_dur = (sub["duration"] - target_dur) / 2.0
-    d_days = (sub["days_left"].fillna(26.0) - target_days) / 10.0
-    same_airline = (sub["airline"].astype(str).str.casefold() == target_airline.casefold()).astype(float)
+    d_days = (sub["days_left"].fillna(26.0) - target_days) / 8.0
 
-    # Combined similarity score (lower is closer; same airline gets distance bonus)
-    sub["similarity_score"] = (d_dist**2) + (d_dur**2) + (d_days**2) - (same_airline * 0.4)
+    # Distance scoring: exact route gets massive priority (-10.0), reverse route gets modest bonus (-2.0)
+    sub["similarity_score"] = (
+        (d_dist**2)
+        + (d_dur**2)
+        + (d_days**2)
+        - (is_exact.astype(float) * 10.0)
+        - (is_reverse.astype(float) * 2.0)
+        - (same_airline.astype(float) * 0.8)
+        - (same_stops.astype(float) * 0.5)
+    )
 
     top = sub.sort_values("similarity_score").head(k)
     records = []
+    exact_count = 0
     for _, row in top.iterrows():
+        s_city = str(row["source_city"]).title()
+        d_city = str(row["destination_city"]).title()
+        if target_source and target_destination and s_city == target_source and d_city == target_destination:
+            match_type = "exact_route"
+            exact_count += 1
+        elif target_source and target_destination and s_city == target_destination and d_city == target_source:
+            match_type = "reverse_route"
+        else:
+            match_type = "similar_corridor"
+
         records.append({
-            "source_city": str(row["source_city"]),
-            "destination_city": str(row["destination_city"]),
+            "source_city": s_city,
+            "destination_city": d_city,
             "airline": str(row["airline"]),
             "stops": str(row["stops"]),
             "duration": round(float(row["duration"]), 2),
             "days_left": int(row["days_left"]) if pd.notna(row["days_left"]) else None,
             "distance_km": round(float(row["distance_km"]), 1),
             "price": float(row["price"]),
+            "match_type": match_type,
         })
 
     prices = [r["price"] for r in records]
@@ -92,6 +122,12 @@ def find_nearest_comparables(
     min_val = round(float(np.min(prices)), 2)
     max_val = round(float(np.max(prices)), 2)
 
+    corridor_note = (
+        f"Found {len(records)} directional historical flights for {target_source} → {target_destination}."
+        if exact_count == len(records) and target_source and target_destination
+        else f"Found {len(records)} closest historical flight tickets across distance, duration, stops, and booking window."
+    )
+
     return {
         "comparables": records,
         "count": len(records),
@@ -100,5 +136,6 @@ def find_nearest_comparables(
         "min": min_val,
         "max": max_val,
         "target_class": target_class,
-        "note": f"Found {len(records)} closest historical flight tickets across distance, duration, stops, and booking window.",
+        "route_match": "exact_directional" if exact_count == len(records) else "corridor_fallback",
+        "note": corridor_note,
     }

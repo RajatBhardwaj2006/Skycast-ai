@@ -73,9 +73,11 @@ def comparables(
     distance_km: float = Query(1000.0),
     duration: float = Query(2.0),
     days_left: int = Query(15),
+    source_city: str | None = Query(None),
+    destination_city: str | None = Query(None),
     k: int = Query(8, ge=1, le=20),
 ):
-    """Query genuine historical flight tickets matching distance, duration, stops, and booking window."""
+    """Query genuine historical flight tickets matching distance, duration, stops, booking window, and directional route."""
     from src.evaluation.comparables import find_nearest_comparables
     return find_nearest_comparables({
         "class": class_type,
@@ -84,7 +86,10 @@ def comparables(
         "distance_km": distance_km,
         "duration": duration,
         "days_left": days_left,
+        "source_city": source_city or "",
+        "destination_city": destination_city or "",
     }, k=k)
+
 
 
 @app.get("/catalog")

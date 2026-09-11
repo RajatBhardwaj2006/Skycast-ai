@@ -18,3 +18,6 @@ COMPARISON_PATH = resolve_path(config["paths"]["comparison"])
 QUALITY_PATH = resolve_path(config["paths"]["quality_report"])
 DECISION_PATH = resolve_path("data/processed/dataset_decision.json")
 VALIDATION_PATH = resolve_path(config["paths"]["validation"])
+MARKET_CALIBRATOR_PATH = resolve_path("models/market_calibrator.pkl")
+MARKET_VALIDATION_PATH = resolve_path("data/reference/market_validation_2026.json")
+

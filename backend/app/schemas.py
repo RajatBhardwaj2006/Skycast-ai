@@ -74,8 +74,16 @@ class FlightPredictionResponse(BaseModel):
     fare_band: str
     out_of_training_distribution: bool
     reliability_note: Optional[str] = None
+    reliability_tier: Optional[str] = None
     summary: dict
     feature_importance: list[dict]
+    historical_baseline: Optional[dict] = None
+    market_calibration: Optional[dict] = None
+    historical_comparables: Optional[dict] = None
+    live_fares: Optional[dict] = None
+    uncertainty: Optional[dict] = None
+
+    model_config = {"populate_by_name": True, "extra": "allow"}
 
 
 class MetricsResponse(BaseModel):

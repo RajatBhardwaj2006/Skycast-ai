@@ -9,10 +9,13 @@ logger = get_logger("skycast.clean")
 AIRLINE_MAP = {
     "air_india": "Air India",
     "air india": "Air India",
+    "air india express": "Air India",
+    "air_india_express": "Air India",
+    "akasa air": "SpiceJet",
+    "akasa": "SpiceJet",
     "go_first": "GO FIRST",
     "go first": "GO FIRST",
     "goair": "GO FIRST",
-    "indigo": "Indigo",
     "indigo": "Indigo",
     "airasia": "AirAsia",
     "air asia": "AirAsia",
@@ -23,6 +26,7 @@ AIRLINE_MAP = {
     "multiple_carriers": "Multiple carriers",
     "multiple carriers": "Multiple carriers",
     "trujet": "Trujet",
+
 }
 
 TIME_MAP = {
