@@ -18,6 +18,18 @@ env/
 credentials.json
 secrets.json
 
+# Datasets
+dataset/
+datasets/
+data/
+
+# Large data files
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.feather
+
 # Jupyter
 .ipynb_checkpoints/
 
