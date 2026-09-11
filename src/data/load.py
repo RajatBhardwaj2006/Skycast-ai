@@ -10,7 +10,7 @@ logger = get_logger("skycast.data")
 def load_clean_dataset() -> pd.DataFrame:
     path = resolve_path(load_config()["paths"]["raw_clean"])
     logger.info("Loading dataset... %s", path)
-    frame = pd.read_csv(path)
+    frame = pd.read_csv(path, low_memory=False)
     logger.info("Dataset loaded: %s rows, %s columns", f"{len(frame):,}", frame.shape[1])
     return frame
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { searchLocations } from "../services/api";
 
 export default function LocationSearch({ id, label, value, onSelect, placeholder }) {
-  const [query, setQuery] = useState(value ? `${value.city} (${value.iata})` : "");
+  const [query, setQuery] = useState(value ? `${value.city} — ${value.airport} (${value.iata})` : "");
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState([]);
   const [active, setActive] = useState(0);
@@ -11,7 +11,7 @@ export default function LocationSearch({ id, label, value, onSelect, placeholder
   const boxRef = useRef(null);
 
   useEffect(() => {
-    if (value) setQuery(`${value.city} (${value.iata})`);
+    if (value) setQuery(`${value.city} — ${value.airport} (${value.iata})`);
   }, [value]);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function LocationSearch({ id, label, value, onSelect, placeholder
 
   useEffect(() => {
     const text = query.trim();
-    if (value && query === `${value.city} (${value.iata})`) {
+    if (value && query === `${value.city} — ${value.airport} (${value.iata})`) {
       setResults([]);
       setError("");
       return;
@@ -55,7 +55,7 @@ export default function LocationSearch({ id, label, value, onSelect, placeholder
 
   function choose(item) {
     onSelect(item);
-    setQuery(`${item.city} (${item.iata})`);
+    setQuery(`${item.city} — ${item.airport} (${item.iata})`);
     setOpen(false);
     setError("");
   }
@@ -116,9 +116,9 @@ export default function LocationSearch({ id, label, value, onSelect, placeholder
               onClick={() => choose(item)}
             >
               <div className="city">
-                {item.city} · {item.iata}
+                {item.city} — {item.airport} ({item.iata})
               </div>
-              <div className="meta">{item.airport}</div>
+              <div className="meta">{item.state ? `${item.state}, ` : ""}{item.country}</div>
             </button>
           ))}
         </div>

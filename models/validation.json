@@ -3,99 +3,97 @@
     "strategy": "random_row_holdout",
     "purpose": "In-distribution estimate for the deployed historical route distribution.",
     "metrics": {
-      "best_model": "Random Forest (tuned)",
-      "mae": 1508.8937199655093,
-      "mse": 9319406.292410025,
-      "rmse": 3052.7702652525336,
-      "r2": 0.9819209955991535,
-      "comparison": [
-        {
-          "mae": 4553.675424692961,
-          "mse": 45716419.07145517,
-          "rmse": 6761.391799877831,
-          "r2": 0.9113133051987536,
-          "model": "Linear Regression",
-          "training_seconds": 0.67
-        },
-        {
-          "mae": 4553.662260815709,
-          "mse": 45716409.72983666,
-          "rmse": 6761.391109071908,
-          "r2": 0.9113133233208482,
-          "model": "Ridge",
-          "training_seconds": 0.48
-        },
-        {
-          "mae": 1531.9408768398227,
-          "mse": 9495897.642628567,
-          "rmse": 3081.541439382013,
-          "r2": 0.9815786145721657,
-          "model": "Random Forest",
-          "training_seconds": 5.32
-        },
-        {
-          "mae": 2952.3236493400464,
-          "mse": 24714850.946955487,
-          "rmse": 4971.403317671529,
-          "r2": 0.9520548965227349,
-          "model": "Gradient Boosting",
-          "training_seconds": 2.779,
-          "note": "Trained on a 60,000-row sample because full-data sklearn GradientBoosting is too slow."
-        },
-        {
-          "mae": 2160.7688387691333,
-          "mse": 14123014.089142729,
-          "rmse": 3758.059883655758,
-          "r2": 0.972602328317977,
-          "model": "HistGradientBoosting",
-          "training_seconds": 1.783
-        },
-        {
-          "mae": 1709.788330078125,
-          "mse": 9908475.0,
-          "rmse": 3147.7730223127587,
-          "r2": 0.9807782173156738,
-          "model": "XGBoost",
-          "training_seconds": 1.95
-        },
-        {
-          "mae": 1508.8937199655093,
-          "mse": 9319406.292410025,
-          "rmse": 3052.7702652525336,
-          "r2": 0.9819209955991535,
-          "model": "Random Forest (tuned)",
-          "training_seconds": null
-        }
-      ]
-    }
+      "mae": 1315.483406427785,
+      "mse": 7355702.31478491,
+      "rmse": 2712.1398036946603,
+      "r2": 0.985400850155839
+    },
+    "training_rows": 248417,
+    "test_rows": 62105
   },
   "route_group_audit": {
     "strategy": "route_group_holdout",
     "purpose": "Unseen-route generalization audit; routes never overlap train and test.",
     "metrics": {
-      "mae": 3470.472259697411,
-      "mse": 39960628.48397985,
-      "rmse": 6321.441962399073,
-      "r2": 0.9165423531118646
+      "mae": 3290.2354921725373,
+      "mse": 33408816.115662325,
+      "rmse": 5780.035996052475,
+      "r2": 0.9357602664406635
     },
-    "training_rows": 244766,
-    "test_rows": 55387,
+    "training_rows": 240338,
+    "test_rows": 70184,
     "training_routes": 24,
-    "test_routes": 6,
+    "test_routes": 7,
     "held_out_routes": [
       "Chennai \u2192 Kolkata",
       "Chennai \u2192 Mumbai",
-      "Hyderabad \u2192 Bangalore",
-      "Hyderabad \u2192 Delhi",
-      "Kolkata \u2192 Hyderabad",
-      "Mumbai \u2192 Delhi"
+      "Delhi \u2192 Mumbai",
+      "Hyderabad \u2192 Chennai",
+      "Kolkata \u2192 Delhi",
+      "Mumbai \u2192 Chennai",
+      "Mumbai \u2192 Hyderabad"
     ]
   },
+  "airport_group_audit": {
+    "strategy": "airport_group_holdout",
+    "purpose": "Unseen-airport generalization audit; selected origin cities/airports are never seen during training.",
+    "metrics": {
+      "mae": 3442.016207726361,
+      "mse": 33877767.69945895,
+      "rmse": 5820.461124297537,
+      "r2": 0.9367450070869071
+    },
+    "training_rows": 217269,
+    "test_rows": 93253,
+    "training_airports": 4,
+    "test_airports": 2,
+    "held_out_airports": [
+      "Bangalore",
+      "Chennai"
+    ]
+  },
+  "strategy_comparison": [
+    {
+      "mae": 2196.5574683088203,
+      "mse": 14558741.30283881,
+      "rmse": 3815.591867959519,
+      "r2": 0.9717570476244638,
+      "model": "Model A (Clean_Dataset only)",
+      "training_seconds": 2.115,
+      "inference_ms_per_1k": 2.972,
+      "strategy": "Model A (Clean_Dataset only)",
+      "rows": 300153
+    },
+    {
+      "mae": 1720.1755397102652,
+      "mse": 7234933.402686599,
+      "rmse": 2689.783151610293,
+      "r2": 0.6451152426422354,
+      "model": "Model B (New Indian Flight Data only)",
+      "training_seconds": 0.327,
+      "inference_ms_per_1k": 6.617,
+      "strategy": "Model B (New Indian Flight Data only)",
+      "rows": 10369
+    },
+    {
+      "mae": 2177.9135479334454,
+      "mse": 13809850.567296294,
+      "rmse": 3716.160729475556,
+      "r2": 0.9725910498917021,
+      "model": "Model C (Unified Merged Dataset)",
+      "training_seconds": 2.334,
+      "inference_ms_per_1k": 3.054,
+      "strategy": "Model C (Unified Merged Dataset)",
+      "rows": 310522
+    }
+  ],
   "temporal_audit": {
     "strategy": "temporal_holdout",
-    "performed": false,
-    "reason": "Clean_Dataset.csv has no legitimate travel or booking date column for chronological splitting.",
-    "date_columns_found": []
+    "performed": true,
+    "reason": "Clean_Dataset.csv has no chronological scrape timestamps; travel dates evaluated where available.",
+    "date_columns_found": [
+      "date_of_journey"
+    ]
   },
-  "interpretation": "Route-group performance is the more defensible indicator for claims about unseen routes. The random-row metric remains the deployed model's in-distribution holdout metric."
+  "interpretation": "Route-group and airport-group performance are the more defensible indicators for claims about unseen routes and airports. The random-row metric remains the deployed model's in-distribution holdout metric."
 }

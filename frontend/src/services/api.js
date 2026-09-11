@@ -49,6 +49,10 @@ export function getDatasetInfo() {
   return request("/dataset-info");
 }
 
+export function getValidation() {
+  return request("/validation");
+}
+
 export function getRouteDistance(sourceIata, destinationIata) {
   return request(`/route-distance?source_iata=${encodeURIComponent(sourceIata)}&destination_iata=${encodeURIComponent(destinationIata)}`);
 }

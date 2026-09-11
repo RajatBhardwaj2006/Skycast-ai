@@ -3,6 +3,7 @@ from __future__ import annotations
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.impute import SimpleImputer
 
 from src.utils.config import load_config
 
@@ -18,11 +19,12 @@ def build_preprocessor(categorical: list[str] | None = None, numerical: list[str
     numerical = numerical if numerical is not None else num
     return ColumnTransformer(
         transformers=[
-            ("num", Pipeline([("scaler", StandardScaler())]), numerical),
+            ("num", Pipeline([("imputer", SimpleImputer(strategy="median")), ("scaler", StandardScaler())]), numerical),
             (
                 "cat",
                 Pipeline(
                     [
+                        ("imputer", SimpleImputer(strategy="most_frequent")),
                         (
                             "onehot",
                             OneHotEncoder(handle_unknown="ignore", sparse_output=False),

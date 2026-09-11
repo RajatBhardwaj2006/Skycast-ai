@@ -1,26 +1,93 @@
+# ================================
+# Python
+# ================================
 __pycache__/
 *.py[cod]
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
 .venv/
 venv/
 env/
-.idea/
-.vscode/
-*.log
+ENV/
 
-models/*.pkl
-models/*.joblib
+# ================================
+# Environment / Secrets
+# ================================
+.env
+.env.*
+!.env.example
 
-frontend/node_modules/
-frontend/dist/
-frontend/.env
+*.pem
+*.key
 
-# Reproducible training output; keep lightweight JSON reports, not the 42 MB CSV.
-data/processed/*.csv
+credentials.json
+secrets.json
 
+# ================================
+# Datasets / Data
+# ================================
+data/
+dataset/
+datasets/
+
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.feather
+
+# ================================
+# Jupyter
+# ================================
 .ipynb_checkpoints/
 
+# ================================
+# Testing / Cache
+# ================================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ================================
+# Node / React
+# ================================
+node_modules/
+npm-debug.log*
+dist/
+build/
+.vite/
+
+# ================================
+# IDE
+# ================================
+.vscode/
+.idea/
+
+# ================================
+# OS
+# ================================
 .DS_Store
 Thumbs.db
+
+# ================================
+# Logs / Temporary
+# ================================
+*.log
+*.tmp
+*.temp
+
+# ================================
+# ML Model Artifacts
+# ================================
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.pt
+*.pth
+
+# ================================
+# Local Git
+# ================================
+.git/
+
+# Model archives
+*.zip

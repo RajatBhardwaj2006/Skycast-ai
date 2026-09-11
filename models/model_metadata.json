@@ -1,11 +1,11 @@
 {
-  "model_name": "Random Forest (tuned)",
+  "model_name": "Extra Trees",
   "target": "price",
   "random_state": 42,
-  "training_rows": 240122,
-  "test_rows": 60031,
-  "validation_strategy": "random_row_holdout",
-  "route_count": 30,
+  "training_rows": 248417,
+  "test_rows": 62105,
+  "validation_strategy": "random_row_holdout_with_route_and_airport_group_audit",
+  "route_count": 31,
   "features": [
     "airline",
     "departure_time",
@@ -41,13 +41,25 @@
     "destination_lon"
   ],
   "metrics": {
-    "mae": 1508.8937199655093,
-    "mse": 9319406.292410025,
-    "rmse": 3052.7702652525336,
-    "r2": 0.9819209955991535
+    "mae": 1315.483406427785,
+    "mse": 7355702.31478491,
+    "rmse": 2712.1398036946603,
+    "r2": 0.985400850155839
   },
-  "training_timestamp": "2026-08-28T10:58:39.068236+00:00",
-  "dataset": "Clean_Dataset.csv",
+  "route_group_metrics": {
+    "mae": 3290.2354921725373,
+    "mse": 33408816.115662325,
+    "rmse": 5780.035996052475,
+    "r2": 0.9357602664406635
+  },
+  "airport_group_metrics": {
+    "mae": 3442.016207726361,
+    "mse": 33877767.69945895,
+    "rmse": 5820.461124297537,
+    "r2": 0.9367450070869071
+  },
+  "training_timestamp": "2026-09-11T05:45:47.362715+00:00",
+  "dataset": "merged_data.csv (Clean_Dataset.csv + IndianFlightdata)",
   "unknown_category_handling": "OneHotEncoder(handle_unknown='ignore')",
   "geographic_features": true,
   "unsupported_features": [
@@ -60,22 +72,30 @@
     "seat_selection"
   ],
   "price_terciles": {
-    "budget_max": 5618.0,
-    "high_min": 14620.0
+    "budget_max": 5632.0,
+    "high_min": 13941.0
   },
   "airlines": [
     "Air India",
     "AirAsia",
     "GO FIRST",
     "Indigo",
+    "Jet Airways",
+    "Jet Airways Business",
+    "Multiple carriers",
+    "Multiple carriers Premium economy",
     "SpiceJet",
-    "Vistara"
+    "Trujet",
+    "Vistara",
+    "Vistara Premium economy"
   ],
   "classes": [
     "Business",
-    "Economy"
+    "Economy",
+    "Unknown"
   ],
   "stops": [
+    "nan",
     "one",
     "two_or_more",
     "zero"
@@ -101,6 +121,7 @@
     "Chennai",
     "Delhi",
     "Hyderabad",
+    "Kochi",
     "Kolkata",
     "Mumbai"
   ],

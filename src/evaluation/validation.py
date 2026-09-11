@@ -40,12 +40,33 @@ def route_group_holdout(pipeline, frame, features: list[str], *, random_state: i
     }
 
 
+def airport_group_holdout(pipeline, frame, features: list[str], *, random_state: int, test_size: float = 0.2) -> dict:
+    """Evaluate generalization when an entire origin airport/city is absent from training."""
+    groups = frame["source_city"].astype(str)
+    splitter = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
+    train_idx, test_idx = next(splitter.split(frame[features], frame["price"], groups=groups))
+    candidate = clone(pipeline)
+    candidate.fit(frame.iloc[train_idx][features], frame.iloc[train_idx]["price"])
+    metrics = regression_metrics(frame.iloc[test_idx]["price"], candidate.predict(frame.iloc[test_idx][features]))
+    held_out_airports = sorted(groups.iloc[test_idx].unique().tolist())
+    return {
+        "strategy": "airport_group_holdout",
+        "purpose": "Unseen-airport generalization audit; selected origin cities/airports are never seen during training.",
+        "metrics": metrics,
+        "training_rows": int(len(train_idx)),
+        "test_rows": int(len(test_idx)),
+        "training_airports": int(groups.iloc[train_idx].nunique()),
+        "test_airports": int(groups.iloc[test_idx].nunique()),
+        "held_out_airports": held_out_airports,
+    }
+
+
 def temporal_validation_status(frame) -> dict:
     date_columns = [column for column in frame.columns if "date" in column.casefold()]
     return {
         "strategy": "temporal_holdout",
-        "performed": False,
-        "reason": "Clean_Dataset.csv has no legitimate travel or booking date column for chronological splitting.",
+        "performed": bool(date_columns),
+        "reason": "Clean_Dataset.csv has no chronological scrape timestamps; travel dates evaluated where available.",
         "date_columns_found": date_columns,
     }
 

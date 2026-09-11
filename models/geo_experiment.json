@@ -3,12 +3,13 @@
   "note": "Same estimator and split used to isolate the effect of distance and coordinates.",
   "results": [
     {
-      "mae": 2359.5005848477435,
-      "mse": 16455577.828930052,
-      "rmse": 4056.547525782245,
-      "r2": 0.9680773158017597,
+      "mae": 2319.723452152974,
+      "mse": 15426722.325855682,
+      "rmse": 3927.686637940415,
+      "r2": 0.9693819813253254,
       "model": "A_categorical",
-      "training_seconds": 3.469,
+      "training_seconds": 2.085,
+      "inference_ms_per_1k": 2.917,
       "features": [
         "airline",
         "departure_time",
@@ -22,12 +23,13 @@
       ]
     },
     {
-      "mae": 2273.018156752205,
-      "mse": 15710234.86409429,
-      "rmse": 3963.6138641515386,
-      "r2": 0.9695232296635021,
+      "mae": 2260.2599069922944,
+      "mse": 14926696.548334962,
+      "rmse": 3863.5083212457253,
+      "r2": 0.9703744020269212,
       "model": "B_categorical_distance",
-      "training_seconds": 1.746,
+      "training_seconds": 2.102,
+      "inference_ms_per_1k": 3.114,
       "features": [
         "airline",
         "departure_time",
@@ -42,12 +44,13 @@
       ]
     },
     {
-      "mae": 2272.163491519877,
-      "mse": 15620725.494185414,
-      "rmse": 3952.306351256873,
-      "r2": 0.9696968716576083,
+      "mae": 2243.6566733310287,
+      "mse": 14729954.754937254,
+      "rmse": 3837.962318071564,
+      "r2": 0.9707648831529244,
       "model": "C_categorical_geo_distance",
-      "training_seconds": 1.679,
+      "training_seconds": 2.265,
+      "inference_ms_per_1k": 2.901,
       "features": [
         "airline",
         "departure_time",

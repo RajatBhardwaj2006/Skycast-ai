@@ -2,77 +2,72 @@
   "features": [
     {
       "feature": "class",
-      "importance": 0.892748,
-      "source": "impurity"
-    },
-    {
-      "feature": "duration",
-      "importance": 0.051737,
-      "source": "impurity"
-    },
-    {
-      "feature": "distance_km",
-      "importance": 0.01506,
-      "source": "impurity"
-    },
-    {
-      "feature": "days_left",
-      "importance": 0.01349,
-      "source": "impurity"
-    },
-    {
-      "feature": "airline",
-      "importance": 0.010992,
-      "source": "impurity"
-    },
-    {
-      "feature": "arrival_time",
-      "importance": 0.003765,
-      "source": "impurity"
-    },
-    {
-      "feature": "departure_time",
-      "importance": 0.00309,
-      "source": "impurity"
-    },
-    {
-      "feature": "destination_lon",
-      "importance": 0.002185,
-      "source": "impurity"
-    },
-    {
-      "feature": "source_lon",
-      "importance": 0.001978,
-      "source": "impurity"
-    },
-    {
-      "feature": "destination_city",
-      "importance": 0.00129,
-      "source": "impurity"
-    },
-    {
-      "feature": "source_city",
-      "importance": 0.001011,
+      "importance": 0.891875,
       "source": "impurity"
     },
     {
       "feature": "stops",
-      "importance": 0.000716,
+      "importance": 0.03691,
       "source": "impurity"
     },
     {
-      "feature": "stops_two_or",
-      "importance": 0.000711,
+      "feature": "duration",
+      "importance": 0.014082,
       "source": "impurity"
     },
     {
-      "feature": "source_lat",
-      "importance": 0.000614,
+      "feature": "days_left",
+      "importance": 0.01281,
+      "source": "impurity"
+    },
+    {
+      "feature": "airline",
+      "importance": 0.011767,
+      "source": "impurity"
+    },
+    {
+      "feature": "source_city",
+      "importance": 0.005758,
+      "source": "impurity"
+    },
+    {
+      "feature": "arrival_time",
+      "importance": 0.005455,
+      "source": "impurity"
+    },
+    {
+      "feature": "distance_km",
+      "importance": 0.005446,
+      "source": "impurity"
+    },
+    {
+      "feature": "destination_city",
+      "importance": 0.005363,
+      "source": "impurity"
+    },
+    {
+      "feature": "departure_time",
+      "importance": 0.004786,
       "source": "impurity"
     },
     {
       "feature": "destination_lat",
-      "importance": 0.000612,
+      "importance": 0.001637,
+      "source": "impurity"
+    },
+    {
+      "feature": "source_lat",
+      "importance": 0.001607,
+      "source": "impurity"
+    },
+    {
+      "feature": "source_lon",
+      "importance": 0.001323,
+      "source": "impurity"
+    },
+    {
+      "feature": "destination_lon",
+      "importance": 0.001179,
       "source": "impurity"
     }
   ]

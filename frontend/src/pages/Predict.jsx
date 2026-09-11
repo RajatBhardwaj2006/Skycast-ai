@@ -10,6 +10,13 @@ const STOP_OPTIONS = [
   { value: "two_or_more", label: "2+ Stops" },
 ];
 
+function calculateEstimatedDuration(distanceKm, stops) {
+  if (!distanceKm || distanceKm <= 0) return 2.25;
+  const flightTime = distanceKm / 600 + 0.35;
+  const layover = stops === "one" ? 2.5 : stops === "two_or_more" ? 5.0 : 0.0;
+  return Math.max(0.75, Math.round((flightTime + layover) * 4) / 4);
+}
+
 function haversine(a, b) {
   if (!a || !b) return null;
   const R = 6371.0088;
@@ -52,6 +59,14 @@ export default function Predict({ onPredicted }) {
 
   const liveDistance = useMemo(() => haversine(source, destination), [source, destination]);
   const sameCity = source && destination && source.iata === destination.iata;
+
+  // Auto-calibrate suggested duration whenever route or stops change
+  useEffect(() => {
+    if (liveDistance && !sameCity) {
+      const suggested = calculateEstimatedDuration(liveDistance, stops);
+      setDuration(suggested);
+    }
+  }, [liveDistance, stops, sameCity]);
 
   function swap() {
     setSource(destination);
@@ -214,7 +229,14 @@ export default function Predict({ onPredicted }) {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="duration">Duration (hours)</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <label htmlFor="duration">Duration (hours)</label>
+              {liveDistance != null && (
+                <span className="muted" style={{ fontSize: "0.75rem" }}>
+                  Suggested: {calculateEstimatedDuration(liveDistance, stops)}h
+                </span>
+              )}
+            </div>
             <input
               id="duration"
               type="number"
@@ -282,25 +304,37 @@ export default function Predict({ onPredicted }) {
         <div className="grid grid-2" style={{ marginTop: "1rem" }}>
           <section className="card result-hero">
             <div className="eyebrow" style={{ color: "#b7e4e0" }}>
-              Estimated airfare
+              ESTIMATED AIRFARE
             </div>
             <div className="price">{formatInr(result.predicted_price)}</div>
             <p>Historical model estimate — not a live ticket price.</p>
             <p style={{ marginTop: "0.6rem" }}>
-              {result.source.city} → {result.destination.city}
+              <strong>{result.source.city} ({result.source.iata}) → {result.destination.city} ({result.destination.iata})</strong>
               <br />
               {result.summary.airline} • {result.summary.class} • {formatStops(result.summary.stops)}
             </p>
-            {result.reliability_note && <p className="coming-soon">{result.reliability_note}</p>}
+            {result.out_of_training_distribution ? (
+              <div style={{ marginTop: "0.8rem", padding: "0.6rem 0.8rem", borderRadius: "6px", background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                <strong style={{ color: "#f59e0b" }}>⚠️ Limited historical training coverage</strong>
+                <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", opacity: 0.9 }}>
+                  The airport is supported geographically, but this exact route has limited historical observations in the training data.
+                </p>
+              </div>
+            ) : (
+              <div style={{ marginTop: "0.8rem", padding: "0.4rem 0.8rem", borderRadius: "6px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                <strong style={{ color: "#10b981" }}>✓ Good historical coverage</strong>
+              </div>
+            )}
           </section>
+
           <section className="card">
             <h2>Fare summary</h2>
             <table className="table">
               <tbody>
                 <tr>
-                  <th>Flight</th>
+                  <th>Route</th>
                   <td>
-                    {result.source.city} → {result.destination.city}
+                    {result.source.city} ({result.source.iata}) → {result.destination.city} ({result.destination.iata})
                   </td>
                 </tr>
                 <tr>
@@ -329,14 +363,25 @@ export default function Predict({ onPredicted }) {
                 </tr>
                 <tr>
                   <th>Fare band</th>
-                  <td>{result.fare_band} (from training price distribution)</td>
+                  <td><strong>{result.fare_band}</strong> (calculated from historical price terciles)</td>
+                </tr>
+                <tr>
+                  <th>Model used</th>
+                  <td>{result.model}</td>
+                </tr>
+                <tr>
+                  <th>Reliability status</th>
+                  <td>{result.out_of_training_distribution ? "Limited historical coverage" : "Good historical coverage"}</td>
                 </tr>
               </tbody>
             </table>
           </section>
+
           <section className="card">
-            <h2>Why this fare?</h2>
-            <p className="muted">Actual grouped feature importance from the trained model.</p>
+            <h2>Global model feature importance</h2>
+            <p className="muted" style={{ fontSize: "0.85rem" }}>
+              These values describe which features the model relies on across its predictions. They are not causal explanations of this individual fare.
+            </p>
             <div className="bars" style={{ marginTop: "0.8rem" }}>
               {(result.feature_importance || []).slice(0, 8).map((item) => (
                 <div className="bar-row" key={item.feature}>
@@ -349,7 +394,8 @@ export default function Predict({ onPredicted }) {
               ))}
             </div>
           </section>
-          <ModelCard />
+
+          <ModelCard modelName={result.model} />
         </div>
       )}
     </>

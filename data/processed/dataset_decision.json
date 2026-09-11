@@ -1,7 +1,9 @@
 {
-  "recommended_modeling_dataset": "Clean_Dataset.csv",
-  "reason": "Clean_Dataset.csv already standardizes airline, class, stops, duration (hours), days_left and price. business.csv and economy.csv contain travel dates and clock times but no booking timestamp, so days_left cannot be derived without inventing a scrape date. Those files are retained for documentation and schema comparison only.",
+  "recommended_modeling_dataset": "merged_data.csv (Clean_Dataset.csv + IndianFlightdata)",
+  "reason": "Standardized schema merges Clean_Dataset.csv with IndianFlightdata (deduplicated). No class or days_left fields are fabricated for newly added records; SimpleImputer and OneHotEncoder handle missing values gracefully while preserving genuine pricing structures.",
+  "total_training_rows": 310522,
   "clean_rows": 300153,
+  "new_dataset_rows": 10463,
   "business_rows": 93487,
   "economy_rows": 206774,
   "days_left_invented": false,

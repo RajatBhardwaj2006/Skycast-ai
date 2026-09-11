@@ -58,7 +58,7 @@ def catalog():
     meta = model_service.load_metadata()
     return {
         "airlines": meta.get("airlines", []),
-        "classes": meta.get("classes", []),
+        "classes": [c for c in meta.get("classes", []) if c.lower() != "unknown"],
         "stops": meta.get("stops", []),
         "departure_times": meta.get("departure_times", []),
         "arrival_times": meta.get("arrival_times", []),
